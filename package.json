@@ -1,12 +1,12 @@
 {
-  "name": "binary-pack",
+  "name": "binary-packer",
   "version": "0.1.0",
   "description": "Structures binary packer",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc --project tsconfig.json"
   },
-  "author": "",
+  "author": "yourconst",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^16.11.11",
