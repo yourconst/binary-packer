@@ -1,0 +1,14 @@
+# Dependency directories
+/node_modules/
+
+# Builded files
+*.js
+
+# Exclude configs
+!/*.js
+
+.DS_Store
+
+.npm
+
+.eslintcache
