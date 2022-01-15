@@ -13,6 +13,7 @@ export type StructTyperHelperArrayBuffer = {
     nullable?: boolean;
 } & ({
     lengthType?: Types.UINTS_TYPE;
+    multiplier?: number;
 } | {
     exactLength?: number;
 });
@@ -63,13 +64,20 @@ export type ParamsGenerator<T extends StructTyperHelper | TypePacker<any>> =
             T['type'] extends Types.ARRAY_BUFFER_TYPE ? ArrayBuffer :
             number :
         T['type'] extends Types.BOOL_ARRAY_TYPE ? boolean[] :
+        // @ts-ignore
         T['type'] extends Types.ARRAY_TYPE ? ParamsGenerator<T['item']>[] :
         T['type'] extends Types.OBJECT_TYPE ?
+        // @ts-ignore
             T['objectConstructor'] extends Types.ClassType ?
+            // @ts-ignore
             Types.GetClassExamplerType<T['objectConstructor']> :
+            // @ts-ignore
             ((T['properties'] extends Object ? {
+                // @ts-ignore
                 [key in keyof T['properties']]: ParamsGenerator<T['properties'][key]>;
+                // @ts-ignore
             } : {}) & (T['flags'] extends Array<string> ? {
+                // @ts-ignore
                 [key in T['flags'][number]]: boolean;
             } : {})) :
         null :
@@ -129,15 +137,20 @@ export abstract class TypePacker<T extends StructTyperHelper> {
         (schema: TP): TypeClass<TP>
     {
         if (schema instanceof TypePacker) {
+            // @ts-ignore
             return schema;
         } else
         if (schema.type === 'boolarray') {
+            // @ts-ignore
             return new BoolArrayTypePacker(schema);
         } else if (schema.type === 'array') {
+            // @ts-ignore
             return new ArrayTypePacker(schema);
         } else if (schema.type === 'object') {
+            // @ts-ignore
             return new ObjectTypePacker(schema);
         } else {
+            // @ts-ignore
             return new SimpleTypePacker(schema);
         }
     }
@@ -164,6 +177,8 @@ export class SimpleTypePacker
     readonly _type: T['type'];
     readonly nullable: boolean;
     readonly _getTypeSize: (val?: any) => number;
+    readonly lengthType?: Types.UINTS_TYPE;
+    readonly multiplier?: number;
 
     constructor(schema: T) {
         super();
@@ -174,6 +189,9 @@ export class SimpleTypePacker
         const size = ReadWriteBuffer.sizes[this._type];
         
         this._getTypeSize = <any> (size instanceof Function ? size : () => size);
+
+        this.lengthType = (<any> schema).lengthType || undefined;
+        this.multiplier = (<any> schema).multiplier || undefined;
     }
 
     _getByteSize:
@@ -210,7 +228,8 @@ export class SimpleTypePacker
             return null;
         }
 
-        return (<any> buf[this._type].read());
+        // return (<any> buf[this._type].read());
+        return (<any> buf[this._type]).read(this.lengthType, this.multiplier);
     }
 }
 
@@ -441,7 +460,7 @@ export class ObjectTypePacker
             }
 
             return true;
-        }).sort();
+        })/* .sort() */;
 
         this.properties = <any> {};
         this.propertiesEntries = [];

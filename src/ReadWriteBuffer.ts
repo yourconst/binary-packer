@@ -103,16 +103,16 @@ export class ReadWriteBuffer implements SimpleReadWriter {
     powerUints = [this.uint8, this.uint16, this.uint32];
 
     'string' = {
-        read: () => {
-            const size = this[ReadWriteBuffer.LENGTH_TYPE].read();
+        read: (lengthType = ReadWriteBuffer.LENGTH_TYPE) => {
+            const size = this[lengthType].read();
             
             this.offset += size;
 
             return this._b.toString('utf8', this.offset - size, this.offset);
         },
-        write: (str: string) => {
-            const size = ReadWriteBuffer.sizes.string(str) - ReadWriteBuffer.LENGTH_BYTE_SIZE;
-            this[ReadWriteBuffer.LENGTH_TYPE].write(size);
+        write: (str: string, lengthType = ReadWriteBuffer.LENGTH_TYPE) => {
+            const size = ReadWriteBuffer.sizes.string(str) - ReadWriteBuffer.sizes[lengthType];
+            this[lengthType].write(size);
 
             this._b.write(str, this.offset, size, 'utf8');
             
@@ -121,16 +121,16 @@ export class ReadWriteBuffer implements SimpleReadWriter {
     };
 
     'arraybuffer' = {
-        read: () => {
-            const size = this[ReadWriteBuffer.LENGTH_TYPE].read();
+        read: (lengthType = ReadWriteBuffer.LENGTH_TYPE, multiplier = 1) => {
+            const size = multiplier * this[lengthType].read();
             
             this.offset += size;
 
             return this._b.buffer.slice(this.offset - size, this.offset);
         },
-        write: (arr: ArrayBuffer) => {
-            const size = ReadWriteBuffer.sizes.arraybuffer(arr) - ReadWriteBuffer.LENGTH_BYTE_SIZE;
-            this[ReadWriteBuffer.LENGTH_TYPE].write(size);
+        write: (arr: ArrayBuffer, lengthType = ReadWriteBuffer.LENGTH_TYPE, multiplier = 1) => {
+            const size = ReadWriteBuffer.sizes.arraybuffer(arr) - ReadWriteBuffer.sizes[lengthType];
+            this[lengthType].write(size / multiplier);
 
             this._b.fill(new Uint8Array(arr), this.offset, this.offset + size);
             

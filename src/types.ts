@@ -35,54 +35,54 @@ export type BufferType = Buffer;
 
 
 
-export type StructTyperHelperSimple = {
-    type: SIMPLE_TYPE;
-};
+// export type StructTyperHelperSimple = {
+//     type: SIMPLE_TYPE;
+// };
 
-export type StructTyperHelperArray = {
-    type: ARRAY_TYPE;
-    item: StructTyperHelper;
-    lengthType?: UINTS_TYPE;
-};
+// export type StructTyperHelperArray = {
+//     type: ARRAY_TYPE;
+//     item: StructTyperHelper;
+//     lengthType?: UINTS_TYPE;
+// };
 
-export type StructTyperHelperArrayBuffer = {
-    type: ARRAY_BUFFER_TYPE;
-    lengthType?: UINTS_TYPE;
-};
+// export type StructTyperHelperArrayBuffer = {
+//     type: ARRAY_BUFFER_TYPE;
+//     lengthType?: UINTS_TYPE;
+// };
 
-export type StructTyperHelperObject = {
-    type: OBJECT_TYPE;
-    objectConstructor?: ClassType;
-    properties: {
-        [key: string]: StructTyperHelper;
-    };
-    flags?: string[];
-};
+// export type StructTyperHelperObject = {
+//     type: OBJECT_TYPE;
+//     objectConstructor?: ClassType;
+//     properties: {
+//         [key: string]: StructTyperHelper;
+//     };
+//     flags?: string[];
+// };
 
-export type StructTyperHelper =
-    StructTyperHelperSimple |
-    StructTyperHelperArray |
-    StructTyperHelperArrayBuffer |
-    StructTyperHelperObject;
+// export type StructTyperHelper =
+//     StructTyperHelperSimple |
+//     StructTyperHelperArray |
+//     StructTyperHelperArrayBuffer |
+//     StructTyperHelperObject;
 
 
-export type ParamsGenerator<T extends StructTyperHelper> =
-    T['type'] extends SIMPLE_TYPE ?
-        T['type'] extends BOOLEAN_TYPE ? boolean :
-        T['type'] extends BIGINT_TYPE ? BigInt :
-        T['type'] extends STRING_TYPE ? string :
-        T['type'] extends ARRAY_BUFFER_TYPE ? ArrayBuffer :
-        number :
-    T['type'] extends ARRAY_TYPE ? ParamsGenerator<T['item']>[] :
-    T['type'] extends OBJECT_TYPE ?
-        T['objectConstructor'] extends ClassType ?
-        GetClassExamplerType<T['objectConstructor']> :
-        ((T['properties'] extends Object ? {
-            [key in keyof T['properties']]: ParamsGenerator<T['properties'][key]>;
-        } : {}) & (T['flags'] extends Array<string> ? {
-            [key in T['flags'][number]]: boolean;
-        } : {})) :
-        null;
+// export type ParamsGenerator<T extends StructTyperHelper> =
+//     T['type'] extends SIMPLE_TYPE ?
+//         T['type'] extends BOOLEAN_TYPE ? boolean :
+//         T['type'] extends BIGINT_TYPE ? BigInt :
+//         T['type'] extends STRING_TYPE ? string :
+//         T['type'] extends ARRAY_BUFFER_TYPE ? ArrayBuffer :
+//         number :
+//     T['type'] extends ARRAY_TYPE ? ParamsGenerator<T['item']>[] :
+//     T['type'] extends OBJECT_TYPE ?
+//         T['objectConstructor'] extends ClassType ?
+//         GetClassExamplerType<T['objectConstructor']> :
+//         ((T['properties'] extends Object ? {
+//             [key in keyof T['properties']]: ParamsGenerator<T['properties'][key]>;
+//         } : {}) & (T['flags'] extends Array<string> ? {
+//             [key in T['flags'][number]]: boolean;
+//         } : {})) :
+//         null;
 
 
 

@@ -19,10 +19,10 @@ export class Utils {
         return new Array(Math.max(0, length)).fill(char).join('');
     }
 
-    static getAlignedStringNumber(n: number, c: number, d: number) {
+    static getAlignedStringNumber(n: number, c: number, d: number, empty = '') {
         let [ceil, decimal = ''] = n.toString().split('.');
 
-        return `${Utils.charString(' ', c - ceil.length)}${ceil}.${decimal.slice(0, d)}${Utils.charString(' ', d - decimal.length)}`
+        return `${Utils.charString(empty, c - ceil.length)}${ceil}.${decimal.slice(0, d)}${Utils.charString(empty, d - decimal.length)}`
     }
 
     static toDecimal(n: number, decimal: number) {
