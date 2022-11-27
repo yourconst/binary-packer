@@ -44,13 +44,13 @@ Also it supports `ascii` string encoding (it's faster and smaller than `utf8`) a
 
 | Name | Byte length | JS type | Description |
 |---|---|---|---|
-| `Struct<T>` | sum(sizeof(T[$key])) | <nobr>`{ ...T }`</nobr> | - |
+| `Struct<T>` | sum(sizeof(T[$key])) | `{...T}` | - |
 | `Array<T,L>` | sizeof(L) + sum(sizeof(T[$i])) | `T[]` | `L` - typeof `length` |
 | `String<L>` | sizeof(L) + ... | `string` | utf8 / ascii. `L` - typeof `length` |
 | `Enum<T>` | [1, 2] | `T` | - |
 | `Const<T>` | 0 | `T` | Not encodes into buffer |
-| `Nullable<T>` | 1 + sizeof(T) | <nobr>`T \| null`</nobr> | - |
-| <nobr>`Aligned<T,A>`</nobr> | aligned(sizeof(T), A) | `T` | Add trailing empty bytes for desired bytes align (`A`) (eg. for `C` struct compatibility) |
+| `Nullable<T>` | 1 + sizeof(T) | `T\|null` | - |
+| `Aligned<T,A>` | aligned(sizeof(T), A) | `T` | Add trailing empty bytes for desired bytes align (`A`) (eg. for `C` struct compatibility) |
 | `LEB128` | [1, 5] | `number` | variable length unsigned int |
 | `SignedLEB128` | [1, 5] | `number` | variable length signed int |
 | `Bool` | 1 | `boolean` | - |
