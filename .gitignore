@@ -2,13 +2,11 @@
 /node_modules/
 
 # Builded files
+/dist
+/dist_test
 *.js
 
-# Exclude configs
-!/*.js
-
+# 
 .DS_Store
-
 .npm
-
 .eslintcache

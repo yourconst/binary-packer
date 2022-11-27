@@ -1,0 +1,32 @@
+{
+  "name": "binary-packer",
+  "description": "Binary packer",
+  "version": "0.1.0",
+  "main": "dist/",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "build-test": "tsc --project tsconfig.test.json",
+    "browserify-test": "browserify dist_test/tests -o dist_test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourconst/binary-packer.git"
+  },
+  "keywords": [
+    "binary",
+    "buffer",
+    "pack"
+  ],
+  "author": "yourconst",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourconst/binary-packer/issues"
+  },
+  "homepage": "https://github.com/yourconst/binary-packer#readme",
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "browserify": "^17.0.0",
+    "protobufjs": "^7.1.2",
+    "typescript": "^4.8.4"
+  }
+}
