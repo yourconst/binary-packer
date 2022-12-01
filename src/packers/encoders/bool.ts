@@ -1,14 +1,21 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
-import { BinaryBuffer } from '../BinaryBuffer';
 
-export class _tp_bool implements TypePacker<boolean> {
+export class _te_bool implements TypeEncoder<boolean> {
     readonly isSizeFixed = true;
 
     constructor(readonly schema: Types.Bool) {}
 
     getSize() {
+        return 1;
+    }
+
+    checkGetSize(value: boolean) {
+        if (typeof value !== 'boolean') {
+            throw new Error();
+        }
+
         return 1;
     }
 

@@ -1,32 +1,39 @@
 {
-  "name": "binary-packer",
-  "description": "Binary packer",
-  "version": "0.1.0",
-  "main": "dist/",
+  "name": "ebinary",
+  "description": "Binary encoder",
+  "version": "0.1.1",
+  "main": "dist",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "build-test": "tsc --project tsconfig.test.json",
-    "browserify-test": "browserify dist_test/tests -o dist_test/index.js"
+    "browserify-test": "browserify tests -p [ tsify ] > tests/bundle.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourconst/binary-packer.git"
+    "url": "git+https://github.com/yourconst/ebinary.git"
   },
   "keywords": [
     "binary",
-    "buffer",
-    "pack"
+    "encode",
+    "pack",
+    "buffer"
   ],
   "author": "yourconst",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/yourconst/binary-packer/issues"
+    "url": "https://github.com/yourconst/ebinary/issues"
   },
-  "homepage": "https://github.com/yourconst/binary-packer#readme",
+  "homepage": "https://github.com/yourconst/ebinary#readme",
   "devDependencies": {
     "@types/node": "^18.11.9",
+    "binary-encoder": "^0.4.0",
     "browserify": "^17.0.0",
     "protobufjs": "^7.1.2",
+    "tsify": "^5.0.4",
     "typescript": "^4.8.4"
   }
 }

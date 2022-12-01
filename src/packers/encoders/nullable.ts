@@ -1,31 +1,31 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
-import { BinaryBuffer } from '../BinaryBuffer';
 
 const isNull = (value: any) => value === null || value === undefined;
 
-export class _tp_nullable implements TypePacker {
+export class _te_nullable implements TypeEncoder {
     readonly isSizeFixed = false;
-    // readonly _flagType = parseSchema('bool');
-    readonly _child: TypePacker;
+    readonly _child: TypeEncoder;
 
     constructor(readonly schema: Types.Nullable) {
         this._child = parseSchema(schema.child);
     }
 
     getSize(value: any) {
-        return /* this._flagType.getSize(null) */ 1 + (((!isNull(value)) || 0) && this._child.getSize(value));
+        return 1 + (((!isNull(value)) || 0) && this._child.getSize(value));
+    }
+
+    checkGetSize(value: any) {
+        return 1 + (((!isNull(value)) || 0) && this._child.checkGetSize(value));
     }
 
     encode(bp: BufferPointer, value: any) {
         if (isNull(value)) {
             bp.writeByte(1);
-            // this._flagType.encode(bp, true);
         } else {
             bp.writeByte(0);
-            // this._flagType.encode(bp, false);
             this._child.encode(bp, value);
         }
     }

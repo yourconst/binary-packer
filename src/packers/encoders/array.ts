@@ -1,13 +1,12 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
-import { BinaryBuffer } from '../BinaryBuffer';
 
-export class _tp_array implements TypePacker {
+export class _te_array implements TypeEncoder {
     readonly isSizeFixed: boolean;
-    private readonly _lengthType: TypePacker<number>;
-    private readonly _child: TypePacker;
+    private readonly _lengthType: TypeEncoder<number>;
+    private readonly _child: TypeEncoder;
 
     readonly getSize: (value: any[]) => number;
 
@@ -28,6 +27,13 @@ export class _tp_array implements TypePacker {
             this.getSize = (value: any[]) =>
                 value.reduce((acc, el) => acc + this._child.getSize(el), this._lengthType.getSize(value.length));
         }
+    }
+
+    checkGetSize(value: any[]) {
+        return value.reduce(
+            (acc, el) => acc + this._child.checkGetSize(el),
+            this._lengthType.checkGetSize(value.length),
+        );
     }
 
     encode(bp: BufferPointer, value: any[]) {

@@ -1,8 +1,7 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
-import { BinaryBuffer } from '../BinaryBuffer';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 
-export class _tp_const<T = any> implements TypePacker<T> {
+export class _te_const<T = any> implements TypeEncoder<T> {
     readonly isSizeFixed = true;
     readonly isConst = true;
     readonly constValue?: T;
@@ -24,7 +23,7 @@ export class _tp_const<T = any> implements TypePacker<T> {
         return 0;
     }
 
-    encode(bp: any, value: T) {
+    checkGetSize(value: T) {
         if (value !== this.constValue) {
             throw new Error('Value not equals to const value', {
                 cause: {
@@ -33,7 +32,11 @@ export class _tp_const<T = any> implements TypePacker<T> {
                 },
             });
         }
+
+        return 0;
     }
+
+    encode(bp: any, value: T) {}
 
     decode() {
         return this.constValue;

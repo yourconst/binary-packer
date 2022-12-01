@@ -10,8 +10,9 @@ export type Int64 = 'int64_le' | 'int64_be';
 export type Float32 = 'float32_le' | 'float32_be';
 export type Float64 = 'float64_le' | 'float64_be';
 
+export type ULEB128 = 'uleb128';
 export type LEB128 = 'leb128';
-export type SignedLEB128 = 'signed_leb128';
+// TODO: add VLQ
 
 
 export type Bool = 'bool';
@@ -22,12 +23,17 @@ export type Const<T = any> = {
 };
 
 
-export type _Length = UInt8 | UInt16 | UInt32 | LEB128 | Const<number>;
+export type _Length = UInt8 | UInt16 | UInt32 | ULEB128 | Const<number>;
 export type _StringEncoding = 'utf8' | 'ascii';
 
 export type String = {
     type: 'string';
     encoding?: _StringEncoding;
+    lengthType?: _Length;
+};
+
+export type Buffer = {
+    type: 'buffer';
     lengthType?: _Length;
 };
 
@@ -39,6 +45,17 @@ export type Array = {
 
 export type Struct = {
     type: 'struct';
+    fields?: {
+        [key: string]: Schema;
+    };
+    orderedFields?: {
+        name: string;
+        type: Schema;
+    }[];
+};
+
+export type OneOf = {
+    type: 'one_of';
     fields?: {
         [key: string]: Schema;
     };
@@ -69,11 +86,6 @@ export type Aligned = {
     child: Schema;
 };
 
-// export type OneOf = {
-//     type: 'one_of';
-//     childs: Schema[];
-// };
-
 export type Transform = {
     type: 'transform';
     child: Schema;
@@ -82,12 +94,16 @@ export type Transform = {
 };
 
 
-export type SchemaInt = UInt8 | Int8 | UInt16 | Int16 | UInt32 | Int32 | UInt64 | Int64;
+export type SchemaInt = UInt8 | Int8 | UInt16 | Int16 | UInt32 | Int32;
+export type SchemaBigInt = UInt64 | Int64;
 export type SchemaFloat = Float32 | Float64;
-export type SchemaNumber = SchemaInt | SchemaFloat;
+export type SchemaStandardNumber = SchemaInt | SchemaBigInt | SchemaFloat;
 
-export type SchemaSimple = SchemaNumber | Bool | LEB128 | SignedLEB128;
-export type SchemaComplex = Const | Aligned | String | Array | Struct | Enum | Nullable | Transform/*  | OneOf */;
+export type SchemaVarInt = ULEB128 | LEB128;
+export type SchemaNumber = SchemaStandardNumber | SchemaVarInt;
+
+export type SchemaSimple = SchemaNumber | Bool;
+export type SchemaComplex = Const | Aligned | String | Buffer | Array | Struct | OneOf | Enum | Nullable | Transform;
 
 export type Schema = SchemaSimple | SchemaComplex;
 
@@ -95,10 +111,10 @@ export type Schema = SchemaSimple | SchemaComplex;
 
 export type SchemaResultType<S extends Schema> =
     S extends Const ? S['value'] :
+    S extends SchemaBigInt ? bigint :
     S extends SchemaNumber ? number :
-    S extends LEB128 ? number :
-    S extends SignedLEB128 ? number :
     S extends String ? string :
+    S extends Buffer ? Uint8Array :
     S extends Bool ? boolean :
     S extends Aligned ? SchemaResultType<S['child']> :
     // S extends OneOf ? SchemaResultType<S['childs'][number]> :
@@ -112,5 +128,8 @@ export type SchemaResultType<S extends Schema> =
         } : {
             [key in keyof S['fields']]: SchemaResultType<S['fields'][key]>
         } :
+    S extends OneOf ? {
+        [key in keyof S['fields']]?: SchemaResultType<S['fields'][key]>
+    } :
     S extends Enum ? S['values'][number] :
     unknown;

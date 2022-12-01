@@ -1,4 +1,4 @@
-import { _StringEncoding } from '../../schemas/types';
+import { _StringEncoding } from '../../types/types';
 import * as Encoders from './encoders';
 
 export interface BinaryBuffer extends Uint8Array {
@@ -118,8 +118,10 @@ class BinaryBufferLE extends Uint8Array implements BinaryBuffer {
             return new this(arg);
         } else if (arg instanceof this) {
             return arg;
+        } else if (arg instanceof ArrayBuffer) {
+            return new this(arg);
         } else if (arg?.buffer instanceof ArrayBuffer) {
-            return new this(arg.buffer);
+            return new this(arg.buffer, arg.byteOffset, arg.length);
         } else {
             throw new Error('Bad params', { cause: params });
         }

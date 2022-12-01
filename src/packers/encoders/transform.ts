@@ -1,12 +1,11 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
-import { BinaryBuffer } from '../BinaryBuffer';
 
-export class _tp_transform implements TypePacker {
+export class _te_transform implements TypeEncoder {
     readonly isSizeFixed: boolean;
-    readonly _child: TypePacker;
+    readonly _child: TypeEncoder;
     readonly _encode: (decoded: any) => any;
     readonly _decode: (encoded: any) => any;
 
@@ -21,6 +20,10 @@ export class _tp_transform implements TypePacker {
 
     getSize(value: any) {
         return this._child.getSize(this._encode(value));
+    }
+
+    checkGetSize(value: any) {
+        return this._child.checkGetSize(this._encode(value));
     }
 
     encode(bp: BufferPointer, value: any) {

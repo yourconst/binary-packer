@@ -18,8 +18,8 @@ export const Int64 = (endian?: Endian): Types.Int64 => `int64_${checkEndian(endi
 export const Float32 = (endian?: Endian): Types.Float32 => `float32_${checkEndian(endian)}`;
 export const Float64 = (endian?: Endian): Types.Float64 => `float64_${checkEndian(endian)}`;
 
+export const ULEB128 = (): Types.ULEB128 => `uleb128`;
 export const LEB128 = (): Types.LEB128 => `leb128`;
-export const SignedLEB128 = (): Types.SignedLEB128 => `signed_leb128`;
 
 export const Bool = (): Types.Bool => `bool`;
 
@@ -37,6 +37,11 @@ export const String = (
     lengthType,
 });
 
+export const Buffer = (lengthType: Types._Length = 'uint32_le'): Types.Buffer => ({
+    type: 'buffer',
+    lengthType,
+});
+
 export const Array = <S extends Types.Schema>(
     child: S,
     lengthType: Types._Length = 'uint32_le',
@@ -50,6 +55,13 @@ export const Struct = <F extends Types.Struct['fields']>(
     fields: F,
 ) => ({
     type: <'struct'> 'struct',
+    fields,
+});
+
+export const OneOf = <F extends Types.OneOf['fields']>(
+    fields: F,
+) => ({
+    type: <'one_of'> 'one_of',
     fields,
 });
 
@@ -75,11 +87,6 @@ export const Aligned = <S extends Types.Schema>(
     align,
     child,
 });
-
-// export const OneOf = <S extends Types.Schema>(childs: S[]) => ({
-//     type: <'one_of'> 'one_of',
-//     childs,
-// });
 
 export const Transform = <S extends Types.Schema, RT>(
     child: S,

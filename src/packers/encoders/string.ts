@@ -1,5 +1,5 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
 import { BinaryBuffer } from '../BinaryBuffer';
@@ -17,9 +17,9 @@ import { BinaryBuffer } from '../BinaryBuffer';
 //     return _b;
 // };
 
-export class _tp_string implements TypePacker<string> {
+export class _te_string implements TypeEncoder<string> {
     readonly isSizeFixed = false;
-    private readonly _lengthType: TypePacker<number>;
+    private readonly _lengthType: TypeEncoder<number>;
     private readonly _encoding: Types._StringEncoding;
 
     constructor(readonly schema: Types.String) {
@@ -42,6 +42,15 @@ export class _tp_string implements TypePacker<string> {
     getSize(value: string) {
         const _s = BinaryBuffer.byteLength(value, this._encoding);
         return this._lengthType.getSize(_s) + _s;
+    }
+
+    checkGetSize(value: string) {
+        if (typeof value !== 'string') {
+            throw new Error();
+        }
+
+        const _s = BinaryBuffer.byteLength(value, this._encoding);
+        return this._lengthType.checkGetSize(_s) + _s;
     }
 
     encode(bp: BufferPointer, value: string) {

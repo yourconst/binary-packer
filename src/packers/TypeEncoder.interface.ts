@@ -1,14 +1,15 @@
-import { Schema } from '../schemas';
+import { Schema } from '../types';
 import { BinaryBuffer } from './BinaryBuffer';
 import { BufferPointer } from './BufferPointer';
 
-export interface TypePacker<T = any> {
+export interface TypeEncoder<T = any> {
     readonly schema: Schema;
     readonly isSizeFixed?: boolean;
     readonly isConst?: boolean;
     readonly constValue?: T;
 
     getSize(value: T): number;
+    checkGetSize(value: T): number;
 
     encode(bp: BufferPointer, value: T): void;
     decode(bp: BufferPointer): T;
@@ -19,8 +20,8 @@ export interface TypePacker<T = any> {
     getSchema(): Schema;
 }
 
-interface TypePackerConstructor {
-    new(schema: Schema): TypePacker;
+interface TypeEncoderConstructor {
+    new(schema: Schema): TypeEncoder;
 }
 
-declare var TypePacker: TypePackerConstructor;
+declare var TypeEncoder: TypeEncoderConstructor;

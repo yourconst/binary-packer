@@ -1,59 +1,31 @@
 import { BufferPointer } from '../../BufferPointer';
 
-export const byteLength = (string: string) => {
-    let byteLength = 0;
-    const length = string.length;
-    let leadSurrogate: number = null;
-    let codePoint: number;
-
-    for (let i = 0; i < length; ++i) {
-        codePoint = string.charCodeAt(i);
-
-        // is surrogate component
-        if (codePoint > 0xD7FF && codePoint < 0xE000) {
-            if (!leadSurrogate) {
-                if (codePoint > 0xDBFF) {
-                    byteLength += 3;
-                    continue;
-                } else if (i + 1 === length) {
-                    byteLength += 3;
-                    continue;
-                }
-
-                leadSurrogate = codePoint;
-
-                continue;
+export const byteLength = (s: string) => {
+    //assuming the String is UCS-2(aka UTF-16) encoded
+    var n = 0;
+    for (var i = 0, l = s.length; i < l; i++) {
+        var hi = s.charCodeAt(i);
+        if (hi < 0x0080) { //[0x0000, 0x007F]
+            n += 1;
+        } else if (hi < 0x0800) { //[0x0080, 0x07FF]
+            n += 2;
+        } else if (hi < 0xD800) { //[0x0800, 0xD7FF]
+            n += 3;
+        } else if (hi < 0xDC00) { //[0xD800, 0xDBFF]
+            var lo = s.charCodeAt(++i);
+            if (i < l && lo >= 0xDC00 && lo <= 0xDFFF) { //followed by [0xDC00, 0xDFFF]
+                n += 4;
+            } else {
+                throw new Error("UCS-2 String malformed");
             }
-
-            if (codePoint < 0xDC00) {
-                byteLength += 3;
-                leadSurrogate = codePoint;
-                continue;
-            }
-
-            codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000;
-        } else if (leadSurrogate) {
-            byteLength += 3;
-        }
-
-        leadSurrogate = null;
-
-        // encode utf8
-        if (codePoint < 0x80) {
-            byteLength += 1;
-        } else if (codePoint < 0x800) {
-            byteLength += 2;
-        } else if (codePoint < 0x10000) {
-            byteLength += 3;
-        } else if (codePoint < 0x110000) {
-            byteLength += 4;
-        } else {
-            throw new Error('Invalid code point');
+        } else if (hi < 0xE000) { //[0xDC00, 0xDFFF]
+            throw new Error("UCS-2 String malformed");
+        } else { //[0xE000, 0xFFFF]
+            n += 3;
         }
     }
-
-    return byteLength;
-}
+    return n;
+};
 
 export const encodeInto = (string: string, buf: Uint8Array, offset = 0) => {
     const length = string.length;
@@ -61,13 +33,12 @@ export const encodeInto = (string: string, buf: Uint8Array, offset = 0) => {
     let leadSurrogate: number = null;
 
     // const bp = new BufferPointer(buf, offset);
-    let ptr = offset;
 
     const setSurrogateComponent = () => {
-        buf[ptr] = 0xEF;
-        buf[ptr + 1] = 0xBF;
-        buf[ptr + 2] = 0xBD;
-        ptr += 3;
+        buf[offset] = 0xEF;
+        buf[offset + 1] = 0xBF;
+        buf[offset + 2] = 0xBD;
+        offset += 3;
     };
 
     for (let i = 0; i < length; ++i) {
@@ -112,28 +83,28 @@ export const encodeInto = (string: string, buf: Uint8Array, offset = 0) => {
 
         // encode utf8
         if (codePoint < 0x80) {
-            buf[ptr++] = codePoint;
+            buf[offset++] = codePoint;
         } else if (codePoint < 0x800) {
-            buf[ptr] = codePoint >> 0x6 | 0xC0;
-            buf[ptr + 1] = codePoint & 0x3F | 0x80;
-            ptr += 2;
+            buf[offset] = codePoint >> 0x6 | 0xC0;
+            buf[offset + 1] = codePoint & 0x3F | 0x80;
+            offset += 2;
         } else if (codePoint < 0x10000) {
-            buf[ptr] = codePoint >> 0xC | 0xE0;
-            buf[ptr + 1] = codePoint >> 0x6 & 0x3F | 0x80;
-            buf[ptr + 2] = codePoint & 0x3F | 0x80;
-            ptr += 3;
+            buf[offset] = codePoint >> 0xC | 0xE0;
+            buf[offset + 1] = codePoint >> 0x6 & 0x3F | 0x80;
+            buf[offset + 2] = codePoint & 0x3F | 0x80;
+            offset += 3;
         } else if (codePoint < 0x110000) {
-            buf[ptr] = codePoint >> 0x12 | 0xF0;
-            buf[ptr + 1] = codePoint >> 0xC & 0x3F | 0x80;
-            buf[ptr + 2] = codePoint >> 0x6 & 0x3F | 0x80;
-            buf[ptr + 3] = codePoint & 0x3F | 0x80;
-            ptr += 4;
+            buf[offset] = codePoint >> 0x12 | 0xF0;
+            buf[offset + 1] = codePoint >> 0xC & 0x3F | 0x80;
+            buf[offset + 2] = codePoint >> 0x6 & 0x3F | 0x80;
+            buf[offset + 3] = codePoint & 0x3F | 0x80;
+            offset += 4;
         } else {
             throw new Error('Invalid code point');
         }
     }
 
-    return ptr;
+    return offset;
 }
 
 export const encode = (string: string, units = Infinity) => {

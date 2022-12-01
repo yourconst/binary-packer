@@ -1,17 +1,16 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
-import { BinaryBuffer } from '../BinaryBuffer';
 
 const getAlignOffset = (size: number, align: number) => {
     return (align - (size % align)) % align;
 };
 
-export class _tp_aligned implements TypePacker {
+export class _te_aligned implements TypeEncoder {
     readonly isSizeFixed: boolean;
     readonly _align: Types.__Align;
-    readonly _child: TypePacker;
+    readonly _child: TypeEncoder;
     private _offset?: number;
 
     readonly getSize: (value: any) => number;
@@ -40,6 +39,11 @@ export class _tp_aligned implements TypePacker {
                 return _childSize + getAlignOffset(_childSize, this._align);
             }
         }
+    }
+
+    checkGetSize(value: any) {
+        const _childSize = this._child.checkGetSize(value);
+        return _childSize + getAlignOffset(_childSize, this._align);
     }
 
     encode(bp: BufferPointer, value: any) {

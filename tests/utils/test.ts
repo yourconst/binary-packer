@@ -1,64 +1,72 @@
-import { Type } from 'protobufjs';
-import { BinaryBuffer, BinaryPacker, CustomBinaryBuffer } from '../../src';
-import { Schema, SchemaResultType } from '../../src/schemas';
+import { BinaryBuffer, BinaryEncoder, CustomBinaryBuffer } from '../../src';
+import { Schema, SchemaResultType } from '../../src/types';
 import { Measuring } from './Measuring';
+
+export type OtherEncoder<T = any> = {
+    name: string;
+    encode(value: T): Uint8Array;
+    decode(buffer: Uint8Array): T;
+    lastEncoded?: Uint8Array;
+    lastDecoded?: T;
+};
 
 export function test<T extends Schema>(
     {
         label,
         count,
         groupCount,
-        binaryPacker,
-        protobufType,
+        binaryEncoder,
+        otherEncoders = [],
     }: {
         label: string;
         count: number;
         groupCount: number;
-        binaryPacker: BinaryPacker<T, typeof BinaryBuffer>;
-        protobufType: Type;
+        binaryEncoder: BinaryEncoder<T, typeof BinaryBuffer>;
+        otherEncoders?: OtherEncoder<SchemaResultType<T>>[];
     },
     values: SchemaResultType<T>[],
 ) {
-    const customBinaryPacker = new BinaryPacker(binaryPacker.getSchema(), CustomBinaryBuffer);
+    const customBinaryEncoder = new BinaryEncoder(binaryEncoder.getSchema(), CustomBinaryBuffer);
 
     // @ts-ignore
-    const encodedPB = values.map(v => protobufType.encode(v).finish());
-    const encodedBP = values.map(v => binaryPacker.encode(v));
+    const encoders: OtherEncoder<SchemaResultType<T>>[] = [
+        { name: 'Standard +check', encode: binaryEncoder.checkEncode, decode: <any> null },
+        { name: 'Custom +check', encode: customBinaryEncoder.checkEncode, decode: <any> null },
+        { name: 'Standard', encode: binaryEncoder.encode, decode: binaryEncoder.decode },
+        { name: 'Custom', encode: customBinaryEncoder.encode, decode: customBinaryEncoder.decode },
+        ...otherEncoders,
+    ];
 
     const { length } = values;
     const createIndexRunner = () => {
         let i = 0;
         return () => (i++) % length;
     };
-    const getIndexPB = createIndexRunner();
-    const getIndexBPS = createIndexRunner();
-    const getIndexBPC = createIndexRunner();
-
-    let lastEncodedPB: Uint8Array = <any> null;
-    let lastEncodedBPS: Uint8Array = <any> null;
-    let lastEncodedBPC: Uint8Array = <any> null;
-    let lastDecodedPB: SchemaResultType<T> = <any> null;
-    let lastDecodedBPS: SchemaResultType<T> = <any> null;
-    let lastDecodedBPC: SchemaResultType<T> = <any> null;
 
 
+    // @ts-ignore
     Measuring.compareVoidSync(`${label}: Encode`, groupCount, [
-        Measuring.buildShell('Protobuf', count, () => { lastEncodedPB = protobufType.encode(values[getIndexPB()]).finish(); }),
-        Measuring.buildShell('Standard', count, () => { lastEncodedBPS = binaryPacker.encode(values[getIndexBPS()]); }),
-        Measuring.buildShell('Custom', count, () => { lastEncodedBPC = customBinaryPacker.encode(values[getIndexBPC()]); }),
+        // @ts-ignore
+        ...encoders.map(oe => {
+            const getIndex = createIndexRunner();
+            return Measuring.buildShell(oe.name, count, () => { oe.lastEncoded = oe.encode(values[getIndex()]); });
+        }),
     ]);
 
-    console.log(lastEncodedPB);
-    console.log(lastEncodedBPS);
-    console.log(lastEncodedBPC);
+    for (const encoder of encoders) {
+        console.log(encoder.name, encoder.lastEncoded);
+    }
 
     Measuring.compareVoidSync(`${label} Decode`, groupCount, [
-        Measuring.buildShell('Protobuf', count, () => { lastDecodedPB = <any> protobufType.decode(encodedPB[getIndexPB()]); }),
-        Measuring.buildShell('Standard', count, () => { lastDecodedBPS = binaryPacker.decode(encodedBP[getIndexBPS()]); }),
-        Measuring.buildShell('Custom', count, () => { lastDecodedBPC = customBinaryPacker.decode(encodedBP[getIndexBPC()]); }),
+        ...encoders.slice(2).map(oe => {
+            const getIndex = createIndexRunner();
+            // @ts-ignore
+            const encoded = values.map((v: any) => oe.encode(v));
+            return Measuring.buildShell(oe.name, count, () => { oe.lastDecoded = oe.decode(encoded[getIndex()]); });
+        }),
     ]);
 
-    console.log(lastDecodedPB);
-    console.log(lastDecodedBPS);
-    console.log(lastDecodedBPC);
+    for (const encoder of encoders.slice(2)) {
+        console.log(encoder.name, encoder.lastDecoded);
+    }
 }

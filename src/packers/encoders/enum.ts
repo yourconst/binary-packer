@@ -1,14 +1,13 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
-import { BinaryBuffer } from '../BinaryBuffer';
 
-export class _tp_enum implements TypePacker {
+export class _te_enum implements TypeEncoder {
     readonly isSizeFixed = true;
     readonly _valueIndex: Map<any, number>;
     readonly _indexValue: any[];
-    readonly _type: TypePacker<number>;
+    readonly _type: TypeEncoder<number>;
 
     constructor(readonly schema: Types.Enum) {
         this._indexValue = [...new Set(
@@ -35,7 +34,16 @@ export class _tp_enum implements TypePacker {
     }
 
     getSize(value: any) {
-        return this._type.getSize(value);
+        return this._type.getSize(null);
+    }
+
+    checkGetSize(value: any) {
+        if (!this._valueIndex.has(value)) {
+            throw new Error();
+        }
+
+        // Because it is static
+        return this._type.getSize(null);
     }
 
     encode(bp: BufferPointer, value: any) {

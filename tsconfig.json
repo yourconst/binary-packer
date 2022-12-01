@@ -13,12 +13,12 @@
     "outDir": "./dist",
     "baseUrl": "./src",
     "rootDir": "./src",
-    "typeRoots": ["./node_modules/@types"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "exclude": [
     "./node_modules",
     "./tests",
     "./dist",
-    "./dist_test",
-  ],
+    "./dist_test"
+  ]
 }

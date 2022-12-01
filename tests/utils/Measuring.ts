@@ -1,26 +1,30 @@
+import { performance } from 'perf_hooks';
+
 export namespace Measuring {
     export class Timer {
         private startTimeHR: number;
         private startTime: number;
 
         start() {
-            // performance.mark('1');
             this.startTimeHR = performance.now();
             // this.startTime = Date.now();
             return this;
         }
 
-        getDuration(decimals = 0) {
-            // return performance.measure('1', '1');.duration;
-            return +(performance.now() - this.startTimeHR).toFixed(decimals);
+        getDurationS() {
+            return (performance.now() - this.startTimeHR) / 1e3;
         }
 
-        log(label: string, decimals = 0) {
-            const duration = this.getDuration(decimals);
+        getDurationMs() {
+            return performance.now() - this.startTimeHR;
+        }
 
-            console.log(`${label}. Duration: ${duration}`);
+        getDurationUs() {
+            return (performance.now() - this.startTimeHR) * 1e3;
+        }
 
-            return duration;
+        getDurationNs() {
+            return (performance.now() - this.startTimeHR) * 1e6;
         }
     }
 
@@ -43,7 +47,7 @@ export namespace Measuring {
     };
 
     function printMeasurement(prefix: string, m: Measurement) {
-        console.log(`${prefix}${m.label}. Avg: ${m.avg.toFixed(3)}, Max: ${m.max}, Min: ${m.min}`);
+        console.log(`${prefix}${m.label}. Avg: ${m.avg.toFixed(3)}, Max: ${m.max.toFixed(3)}, Min: ${m.min.toFixed(3)}`);
     }
 
     function printComparison(prefix: string, m1: Measurement, m2) {
@@ -59,12 +63,10 @@ export namespace Measuring {
             f(...params);
         }
 
-        const duration = timer.getDuration(3);
-
-        // const duration = timer.getDuration(3);
+        const duration = timer.getDurationUs();
 
         if (logging) {
-            console.log(`Measure: ${label}. Duration: ${duration} , Count: ${count}`, ...(params ? [', Parameters:', params] : []));
+            console.log(`Measure: ${label}. Duration: ${duration.toFixed(3)} , Count: ${count}`, ...(params ? [', Parameters:', params] : []));
         }
 
         return duration;
@@ -84,28 +86,29 @@ export namespace Measuring {
             for (const shell of _s) {
                 const duration = measureVoidSync(shell, false);
 
-                shell.measurement.min = Math.min(shell.measurement.min, duration);
-                shell.measurement.max = Math.max(shell.measurement.max, duration);
+                shell.measurement.min = Math.min(shell.measurement.min, duration / shell.count);
+                shell.measurement.max = Math.max(shell.measurement.max, duration / shell.count);
 
                 if (i) {
-                    shell.measurement.avg = (shell.measurement.avg * i + duration) / (i + 1);
+                    shell.measurement.avg = (shell.measurement.avg * i + (duration / shell.count)) / (i + 1);
                 } else {
-                    shell.measurement.avg = duration;
+                    shell.measurement.avg = duration / shell.count;
                 }
             }
         }
 
+        console.log(`\n${label}\n\nMeasure:`);
         const s = _s.map(s => {
             const res = { label: s.label, ...s.measurement };
-            printMeasurement(`Measure: ${label}.`, res);
+            printMeasurement('', res);
             return res;
         });
 
-        console.log('');
-        
-        for (let i = 0; i < s.length; ++i) {
+
+        console.log(`\n\nComparison:`);
+        for (let i = 0; i < s.length - 1; ++i) {
             for (let j = i + 1; j < s.length; ++j) {
-                printComparison(`Comparison: ${label}.`, s[i], s[j]);
+                printComparison('', s[i], s[j]);
             }
 
             console.log('');

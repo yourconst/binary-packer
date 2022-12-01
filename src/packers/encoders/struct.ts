@@ -1,24 +1,22 @@
-import { TypePacker } from '../TypePacker.interface';
-import * as Types from '../../schemas/types';
-import { BufferPointer } from '../BufferPointer';
+import { TypeEncoder } from '../TypeEncoder.interface';
+import * as Types from '../../types/types';
 import { parseLengthSchema, parseSchema } from '.';
-import { BinaryBuffer } from '../BinaryBuffer';
 
 type Field = {
     name: string;
-    type: TypePacker;
+    type: TypeEncoder;
 };
 
-export class _tp_struct implements TypePacker {
+export class _te_struct implements TypeEncoder<Record<string, any>> {
     readonly isSizeFixed: boolean = true;
     private readonly _fields: Field[] = [];
     private readonly _notFixedFields: Field[] = [];
     private readonly _fixedFieldsSize = 0;
 
-    readonly getSize: (value: Record<string, any>) => number;
-    readonly encode: (bp: BufferPointer, value: Record<string, any>) => void;
-    readonly decode: (bp: BufferPointer) => Record<string, any>;
-    readonly encodeGetBuffers: (barr: BinaryBuffer[], value: any) => void;
+    readonly getSize: TypeEncoder<Record<string, any>>['getSize'];
+    readonly checkGetSize: TypeEncoder<Record<string, any>>['checkGetSize'];
+    readonly encode: TypeEncoder<Record<string, any>>['encode'];
+    readonly decode: TypeEncoder<Record<string, any>>['decode'];
 
     constructor(readonly schema: Types.Struct) {
         const fields = schema.orderedFields ?
@@ -40,23 +38,45 @@ export class _tp_struct implements TypePacker {
             }
         }
 
+        const _fs = this._fields;
+
         if (this.isSizeFixed) {
             this.getSize = () => this._fixedFieldsSize;
         } else if (this._fixedFieldsSize) {
-            this.getSize = (value) =>
-                this._fixedFieldsSize + this._notFixedFields.reduce(
-                    (acc, { name, type }) => (acc + type.getSize(value[name])),
-                    0,
-                );
+            this.getSize = Function('_fixedFieldsSize, _nffs', `
+                ${this._notFixedFields.map((_, i) => `const type_${i} = _nffs[${i}].type;`).join('\n')};
+
+                return (value) => {
+                    return _fixedFieldsSize + ${this._notFixedFields.map(({ name }, i) => `type_${i}.getSize(value.${name})`).join('+')};
+                };
+            `)(this._fixedFieldsSize, this._notFixedFields);
+            // this.getSize = (value) =>
+            //     this._fixedFieldsSize + this._notFixedFields.reduce(
+            //         (acc, { name, type }) => (acc + type.getSize(value[name])),
+            //         0,
+            //     );
         } else {
-            this.getSize = (value) =>
-                this._notFixedFields.reduce(
-                    (acc, { name, type }) => (acc + type.getSize(value[name])),
-                    0,
-                );
+            this.getSize = Function('_fs', `
+                ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')};
+
+                return (value) => {
+                    return ${_fs.map(({ name }, i) => `type_${i}.getSize(value.${name})`).join('+')};
+                };
+            `)(_fs);
+            // this.getSize = (value) =>
+            //     this._notFixedFields.reduce(
+            //         (acc, { name, type }) => (acc + type.getSize(value[name])),
+            //         0,
+            //     );
         }
 
-        const _fs = this._fields;
+        this.checkGetSize = Function('_fs', `
+                ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')};
+
+                return (value) => {
+                    return ${_fs.map(({ name }, i) => `type_${i}.checkGetSize(value.${name})`).join('+')};
+                };
+            `)(_fs);
 
         this.encode = Function('_fs', `
             ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')}
@@ -75,14 +95,6 @@ export class _tp_struct implements TypePacker {
                 return {
                     ${_fs.map(({ name }, i) => `${name}: val_${i}`).join(',')}
                 };
-            };
-        `)(_fs);
-
-        this.encodeGetBuffers = Function('_fs', `
-            ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')}
-
-            return (barr, value) => {
-                ${_fs.map(({ name }, i) => `type_${i}.encodeGetBuffers(barr, value.${name});`).join('\n')}
             };
         `)(_fs);
     }
