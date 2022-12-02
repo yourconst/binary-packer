@@ -49,7 +49,7 @@ Also it supports `ascii` string encoding (it's faster and smaller than `utf8`) a
 | `Struct<T>` | ... | `{...T}` | - |
 | `OneOf<T>` | [1,2]+... | `{$key:T[$key]}` | Only one of properties provided |
 | `Array<T,L>` | sizeof(L)+... | `T[]` | `L` - typeof `length` |
-| `String<L>` | sizeof(L)+ ... | `string` | utf8 / ascii. `L` - typeof `length` |
+| `String<L>` | sizeof(L)+... | `string` | utf8 / ascii. `L` - typeof `length` |
 | `Buffer<L>` | sizeof(L)+... | `Uint8Array` | `L` - typeof `length` |
 | `Enum<T>` | [1,2] | `T` | - |
 | `Const<T>` | 0 | `T` | Not encodes into buffer |
