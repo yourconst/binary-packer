@@ -4,6 +4,10 @@ import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
 import { BinaryBuffer } from '../BinaryBuffer';
 
+export function getArrayBuffer(buffer: Uint8Array) {
+    return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+}
+
 export class _te_buffer implements TypeEncoder<Uint8Array> {
     readonly isSizeFixed = false;
     private readonly _lengthType: TypeEncoder<number>;

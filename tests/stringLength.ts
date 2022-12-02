@@ -1,4 +1,4 @@
-import { createCycleIndexRunner, generateString, Measuring } from './utils';
+import { createCycleIndexRunner, randString, Measuring, randInt } from './utils';
 
 const f1 = (string: string) => {
     let byteLength = 0;
@@ -122,10 +122,37 @@ const f31 = (s: string) => {
     return n;
 };
 
-const fs = [f1, f2, f3, f31]/* .reverse() */;
+const f4 = (str: string) => {
+    let s = str.length;
+    for (let i = s - 1; i >= 0; --i) {
+        const code = str.charCodeAt(i);
+        if (code > 0x007F && code <= 0x07FF) ++s;
+        else if (code > 0x07FF && code <= 0xFFFF) s += 2;
+        if (code >= 0xDC00 && code <= 0xDFFF) --i; //trail surrogate
+    }
 
-const strings = new Array(100).fill(1).map(() => generateString(100));
+    return s;
+};
+
+const f41 = (str: string) => {
+    let s = str.length;
+    for (let i = s - 1; i >= 0; --i) {
+        const code = str.charCodeAt(i);
+        if (code < 0x0080) continue;
+        if (code < 0x0800) ++s;
+        else if (code <= 0xFFFF) s += 2;
+        if (code >= 0xDC00 && code <= 0xDFFF) --i; //trail surrogate
+    }
+
+    return s;
+};
+
+const fs = [f1, f2, f3, f31, f4, f41]/* .reverse() */;
+
+const strings = new Array(100).fill(1).map(() => randString(randInt(10, 100)));
 const results = new Array(fs.length).fill(0);
+
+// console.log(strings);
 
 const groupCount = 100;
 const count = 1e5;

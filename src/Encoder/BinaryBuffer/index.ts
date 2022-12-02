@@ -1,5 +1,5 @@
 import { _StringEncoding } from '../../types/types';
-import * as Encoders from './encoders';
+import * as Encoders from './string-encoders';
 
 export interface BinaryBuffer extends Uint8Array {
     write(src: string, offset?: number, encoding?: _StringEncoding): number;

@@ -16,21 +16,21 @@ npm i ebinary
 ## Usage
 
 ```typescript
-import { BinaryEncoder, Type } from 'ebinary';
+import { Encoder, Type } from 'ebinary';
 
-const packer = new BinaryEncoder(Type.Array(Type.Struct({
+const encoder = new Encoder(Type.Array(Type.Struct({
     id: Type.UInt32(),
     count: Type.UInt16(),
     enabled: Type.Nullable(Type.Bool()),
 })));
 
-const buffer = packer.encode([
+const buffer = encoder.encode([
     { id: 1, count: 123, enabled: null },
     { id: 2, count: 756, enabled: true },
     { id: 3, count: 435, enabled: false },
 ]);
 
-const value = packer.decode(buffer);
+const value = encoder.decode(buffer);
 ```
 
 <br />

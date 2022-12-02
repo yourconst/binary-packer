@@ -2,10 +2,10 @@ import { Schema, SchemaResultType } from '../types';
 import { _StringEncoding } from '../types/types';
 import { BinaryBuffer, BinaryBufferLike } from './BinaryBuffer';
 import { BufferPointer } from './BufferPointer';
-import { parseSchema } from './encoders';
+import { parseSchema } from './type-encoders';
 import { TypeEncoder } from './TypeEncoder.interface';
 
-export class BinaryEncoder<S extends Schema, BBC extends typeof BinaryBuffer = typeof BinaryBuffer> {
+export class Encoder<S extends Schema, BBC extends typeof BinaryBuffer = typeof BinaryBuffer> {
     private _type: TypeEncoder;
 
     constructor(

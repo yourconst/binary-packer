@@ -15,6 +15,8 @@ import { _te_leb128 } from './leb128';
 import { _te_buffer } from './buffer';
 import { _te_one_of } from './one_of';
 
+export { getArrayBuffer } from './buffer'
+
 const typesMap = new Map<Types.SchemaSimple | Types.SchemaComplex['type'], TypeEncoder | ((schema: Types.Schema) => TypeEncoder)>([
     ['uint8', new _te_number('uint8')], ['int8', new _te_number('int8')],
     ['uint16_le', new _te_number('uint16_le')], ['uint16_be', new _te_number('uint16_be')],

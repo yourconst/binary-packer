@@ -1,7 +1,9 @@
-import { BinaryEncoder, Type } from '../src';
+import { Encoder, Type } from '../src';
 import { Type as PBType, Field, Enum } from 'protobufjs';
 import * as BE from 'binary-encoder';
-import { generateString, getOtherBinaryEncoder, getProtobufEncoder, test } from './utils';
+import {
+    randString, randInt, randBigInt, randBoolNull, getOtherBinaryEncoder, getProtobufEncoder, test,
+} from './utils';
 
 enum TypeEnum {
     'a',
@@ -10,10 +12,6 @@ enum TypeEnum {
 }
 
 const randEnum = () => [TypeEnum.a, TypeEnum.b, TypeEnum.c][Math.trunc(3 * Math.random())];
-const randInt = (min = -(2 ** 51), max = (2 ** 51) - 1) => Math.trunc(min + (max - min) * Math.random());
-const randBigInt = (min?: number, max?: number) => BigInt(randInt(min, max));
-const randBool = () => [true, false][Math.trunc(2 * Math.random())];
-const randBoolNull = () => [true, false, null][Math.trunc(3 * Math.random())];
 
 
 // test(
@@ -22,7 +20,7 @@ const randBoolNull = () => [true, false, null][Math.trunc(3 * Math.random())];
 //         count: 5e3,
 //         groupCount: 500,
 //         // @ts-ignore
-//         binaryEncoder: new BinaryEncoder(Type.Array(Type.Struct({
+//         binaryEncoder: new Encoder(Type.Array(Type.Struct({
 //             id: Type.UInt32(),
 //             count: Type.UInt16(),
 //             str: Type.String(Type.ULEB128(), 'utf8'),
@@ -38,44 +36,17 @@ const randBoolNull = () => [true, false, null][Math.trunc(3 * Math.random())];
 //     new Array(100).fill(1).map(() => new Array(randInt(70, 100)).fill(1).map(() => ({
 //         id: randInt(0, 2 ** 32),
 //         count: randInt(0, 2 ** 16),
-//         str: generateString(randInt(10, 123)),
+//         str: randString(randInt(10, 123)),
 //     }))),
 // );
-
-
-const bpString = new BinaryEncoder(Type.Struct({
-    str: Type.String(Type.ULEB128(), 'utf8'),
-}));
-
-const pTypetring = getProtobufEncoder(
-    new PBType('String')
-        .add(new Field('str', 1, 'string')),
-);
-
-const beString = getOtherBinaryEncoder(BE.Structure({
-    str: BE.String(),
-}));
-
-for (let i = 0; i <= 14; ++i) {
-    // @ts-ignore
-    test(
-        {
-            label: `String ${2 ** i}`,
-            count: 5e3,
-            groupCount: 500,
-            binaryEncoder: bpString,
-            otherEncoders: [pTypetring, beString],
-        },
-        new Array(100).fill(1).map(() => ({ str: generateString(2 ** i) })),
-    );
-}
 
 test(
     {
         label: 'Struct',
         count: 5e3,
         groupCount: 500,
-        binaryEncoder: new BinaryEncoder(Type.Struct({
+        // @ts-ignore
+        binaryEncoder: new Encoder(Type.Struct({
             array: Type.Array(Type.Struct({
                 id: Type.UInt32(),
                 type: Type.Enum([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
@@ -104,13 +75,12 @@ test(
     })),
 );
 
-// @ts-ignore
 test(
     {
         label: 'Struct with bigint',
         count: 5e3,
         groupCount: 500,
-        binaryEncoder: new BinaryEncoder(Type.Struct({
+        binaryEncoder: new Encoder(Type.Struct({
             array: Type.Array(Type.Struct({
                 id: Type.UInt32(),
                 type: Type.Enum([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
@@ -148,7 +118,7 @@ test(
         label: 'Struct with string (utf8)',
         count: 5e3,
         groupCount: 500,
-        binaryEncoder: new BinaryEncoder(Type.Struct({
+        binaryEncoder: new Encoder(Type.Struct({
             array: Type.Array(Type.Struct({
                 id: Type.UInt32(),
                 type: Type.Enum([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
@@ -175,7 +145,7 @@ test(
             type: randEnum(),
             count: randInt(0, 2 ** 16),
             enabled: randBoolNull(),
-            str: generateString(randInt(10, 49)),
+            str: randString(randInt(10, 49)),
         })),
     })),
 );
@@ -186,7 +156,7 @@ test(
         label: 'Struct with string (ascii)',
         count: 5e3,
         groupCount: 500,
-        binaryEncoder: new BinaryEncoder(Type.Struct({
+        binaryEncoder: new Encoder(Type.Struct({
             array: Type.Array(Type.Struct({
                 id: Type.UInt32(),
                 type: Type.Enum([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
@@ -202,10 +172,38 @@ test(
             type: randEnum(),
             count: randInt(0, 2 ** 16),
             enabled: randBoolNull(),
-            str: generateString(randInt(10, 49)),
+            str: randString(randInt(10, 49)),
         })),
     })),
 );
+
+
+const bpString = new Encoder(Type.Struct({
+    str: Type.String(Type.ULEB128(), 'utf8'),
+}));
+
+const pTypetring = getProtobufEncoder(
+    new PBType('String')
+        .add(new Field('str', 1, 'string')),
+);
+
+const beString = getOtherBinaryEncoder(BE.Structure({
+    str: BE.String(),
+}));
+
+for (let i = 0; i <= 11; ++i) {
+    test(
+        {
+            // @ts-ignore
+            label: `String ${2 ** i}`,
+            count: 5e3,
+            groupCount: 100,
+            binaryEncoder: bpString,
+            otherEncoders: [pTypetring, beString],
+        },
+        new Array(100).fill(1).map(() => ({ str: randString(2 ** i) })),
+    );
+}
 
 
 setTimeout(console.log, 100000);

@@ -1,11 +1,17 @@
 import { Type } from 'protobufjs';
 import * as BE from 'binary-encoder';
 
-export const generateString = (length: number) => {
+export const randInt = (min = -(2 ** 51), max = (2 ** 51) - 1) => Math.trunc(min + (max - min) * Math.random());
+export const randBigInt = (min?: number, max?: number) => BigInt(randInt(min, max));
+export const randBool = () => [true, false][Math.trunc(2 * Math.random())];
+export const randBoolNull = () => [true, false, null][Math.trunc(3 * Math.random())];
+
+export const randString = (length: number) => {
     const arr = new Array<string>(length);
 
     for (let i = 0; i < length; ++i) {
-        arr[i] = Math.random() > 0.1 ? String.fromCharCode(Math.trunc(65 + 60 * Math.random())) : '😎';
+        arr[i] = Math.random() > 0.1 ? String.fromCharCode(randInt(40, 200)) : '😎';
+        // arr[i] = '😎';
     }
 
     return arr.join('');
