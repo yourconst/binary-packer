@@ -1,7 +1,7 @@
 export {
     Encoder,
     /**
-     * @deprecated since version `0.2.0` renamed to `Encoder`
+     * @deprecated since version `0.2.2` renamed to `Encoder`
      */
     Encoder as BinaryEncoder
 } from './Encoder';
