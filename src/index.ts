@@ -7,4 +7,4 @@ export {
 } from './Encoder';
 export * as Type from './types';
 export * from './Encoder/BinaryBuffer';
-export { getArrayBuffer } from 'Encoder/type-encoders';
+export { getArrayBuffer } from './Encoder/type-encoders';

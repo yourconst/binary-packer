@@ -4,6 +4,8 @@
 Statically typed data binary encoding library.
 <br />
 Dependency free.
+<br />
+Good types supporting.
 
 <br />
 
