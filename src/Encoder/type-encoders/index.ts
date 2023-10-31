@@ -10,8 +10,8 @@ import { _te_array } from './array';
 import { _te_struct } from './struct';
 import { _te_transform } from './transform';
 import { _te_nullable } from './nullable';
-import { _te_uleb128 } from './uleb128';
-import { _te_leb128 } from './leb128';
+import { _te_uvarint32 } from './uvarint32';
+import { _te_varint32 } from './varint32';
 import { _te_buffer } from './buffer';
 import { _te_one_of } from './one_of';
 
@@ -29,8 +29,8 @@ const typesMap = new Map<Types.SchemaSimple | Types.SchemaComplex['type'], TypeE
     ['float32_le', new _te_number('float32_le')], ['float32_be', new _te_number('float32_be')],
     ['float64_le', new _te_number('float64_le')], ['float64_be', new _te_number('float64_be')],
 
-    ['uleb128', new _te_uleb128('uleb128')],
-    ['leb128', new _te_leb128('leb128')],
+    ['uvarint32', new _te_uvarint32('uvarint32')],
+    ['varint32', new _te_varint32('varint32')],
     ['bool', new _te_bool('bool')],
 
     ['string', (schema: Types.String) => new _te_string(schema)],
@@ -52,7 +52,7 @@ const lengthTypeNames = new Set<Types._Length/*  | Types.Const['type'] */>([
     'uint16_le', 'uint16_be',
     'uint32_le', 'uint32_be',
     // 'const',
-    'uleb128',
+    'uvarint32',
 ]);
 
 export const parseSchema = (schema: Types.Schema) => {

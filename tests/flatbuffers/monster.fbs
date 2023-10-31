@@ -1,0 +1,16 @@
+namespace MyGame.Sample;
+ 
+enum TypeEnum: byte { a = 0, b = 1, c = 2 }
+
+struct Struct {
+    id: int;
+    type: TypeEnum;
+    count: uint;
+    enabled: bool;
+}
+
+table ArrayStruct {
+    array: [Struct];
+}
+ 
+root_type ArrayStruct;

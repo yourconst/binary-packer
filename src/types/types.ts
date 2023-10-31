@@ -10,8 +10,8 @@ export type Int64 = 'int64_le' | 'int64_be';
 export type Float32 = 'float32_le' | 'float32_be';
 export type Float64 = 'float64_le' | 'float64_be';
 
-export type ULEB128 = 'uleb128';
-export type LEB128 = 'leb128';
+export type UVarInt32 = 'uvarint32';
+export type VarInt32 = 'varint32';
 // TODO: add VLQ
 
 
@@ -23,8 +23,8 @@ export type Const<T = any> = {
 };
 
 
-export type _Length = UInt8 | UInt16 | UInt32 | ULEB128 | Const<number>;
-export type _StringEncoding = 'utf8' | 'ascii';
+export type _Length = UInt8 | UInt16 | UInt32 | UVarInt32 | Const<number>;
+export type _StringEncoding = 'utf8' | 'ascii' | 'ucs2';
 
 export type String = {
     type: 'string';
@@ -70,6 +70,7 @@ export type Enum = {
     values: any[] | {
         [key: string]: any;
     };
+    bigIndexType?: UVarInt32 | UInt16;
 };
 
 export type Nullable = {
@@ -99,7 +100,7 @@ export type SchemaBigInt = UInt64 | Int64;
 export type SchemaFloat = Float32 | Float64;
 export type SchemaStandardNumber = SchemaInt | SchemaBigInt | SchemaFloat;
 
-export type SchemaVarInt = ULEB128 | LEB128;
+export type SchemaVarInt = UVarInt32 | VarInt32;
 export type SchemaNumber = SchemaStandardNumber | SchemaVarInt;
 
 export type SchemaSimple = SchemaNumber | Bool;
@@ -107,9 +108,12 @@ export type SchemaComplex = Const | Aligned | String | Buffer | Array | Struct |
 
 export type Schema = SchemaSimple | SchemaComplex;
 
-
+// type IfAny<T, Y, N> = 0 extends (1 & T) ? Y : N; 
+// type IsNotAny<T> = IfAny<T, never, true>;
 
 export type SchemaResultType<S extends Schema> =
+    // IsNotAny<S> extends never ? unknown :
+    0 extends (1 & S) ? unknown :
     S extends Const ? S['value'] :
     S extends SchemaBigInt ? bigint :
     S extends SchemaNumber ? number :
@@ -118,7 +122,7 @@ export type SchemaResultType<S extends Schema> =
     S extends Bool ? boolean :
     S extends Aligned ? SchemaResultType<S['child']> :
     // S extends OneOf ? SchemaResultType<S['childs'][number]> :
-    S extends Transform ? ReturnType<S['encode']> :
+    S extends Transform ? Parameters<S['encode']>[0] :
     S extends Nullable ? null | SchemaResultType<S['child']> :
     S extends Array ? SchemaResultType<S['child']>[] :
     S extends Struct ?

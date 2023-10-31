@@ -1,9 +1,16 @@
 import { _StringEncoding } from '../../types/types';
+import { _native } from './_native';
 import * as Encoders from './string-encoders';
+
+export * as StringEncoders from './string-encoders';
 
 export interface BinaryBuffer extends Uint8Array {
     write(src: string, offset?: number, encoding?: _StringEncoding): number;
-    toString(encoding?: _StringEncoding, start?: number, end?: number): string;
+    /**
+     * @deprecated
+     */
+    toString(): string
+    toString(encoding: _StringEncoding, start: number, end: number): string;
 
     readUInt8(offset?: number): number;
     writeUInt8(value: number, offset?: number): number;
@@ -46,6 +53,16 @@ export interface BinaryBuffer extends Uint8Array {
     writeDoubleLE(value: number, offset?: number): number;
     readDoubleBE(offset?: number): number;
     writeDoubleBE(value: number, offset?: number): number;
+
+
+    utf8Write?(str: string, offset?: number, length?: number): number;
+    utf8Slice?(start?: number, end?: number): string;
+
+    ucs2Write?(str: string, offset?: number, length?: number): number;
+    ucs2Slice?(start?: number, end?: number): string;
+
+    asciiWrite?(str: string, offset?: number, length?: number): number;
+    asciiSlice?(start?: number, end?: number): string;
 }
 
 export interface BinaryBufferConstructor {
@@ -100,41 +117,53 @@ const f64a = new Float64Array(ui8a.buffer);
 // const td = new TextDecoder('utf-8');
 
 const getEncoder = (encoding: _StringEncoding = 'utf8') => {
-    if (encoding === 'ascii') {
-        return Encoders.ascii;
-    } else if (encoding === 'utf8') {
-        return Encoders.utf8;
-    } else {
-        throw new Error('');
+    const encoder = Encoders[encoding];
+    if (!encoder) {
+        throw new Error();
     }
+    return encoder;
 };
 
+const allocUnsafe = _native.allocUnsafe;
 class BinaryBufferLE extends Uint8Array implements BinaryBuffer {
     static from(arg: any, ...params: any[]) {
-        if (typeof arg === 'string') {
-            // return new this(new TextEncoder().encode(arg).buffer);
-            return new this(getEncoder(params[0]).encode(arg));
-        } else if (Array.isArray(arg)) {
-            return new this(arg);
-        } else if (arg instanceof this) {
+        if (arg instanceof this) {
             return arg;
         } else if (arg instanceof ArrayBuffer) {
-            return new this(arg);
+            return new this(arg, ...params);
         } else if (arg?.buffer instanceof ArrayBuffer) {
             return new this(arg.buffer, arg.byteOffset, arg.length);
+        } else if (typeof arg === 'string') {
+            const encoder = getEncoder(params[0]);
+            const size = encoder.byteLength(arg);
+            const buf = this.allocUnsafe(size);
+            encoder.encodeInto(buf, arg, 0);
+            // return new this(new TextEncoder().encode(arg).buffer);
+            return buf;
+        } else if (Array.isArray(arg)) {
+            return new this(arg);
         } else {
             throw new Error('Bad params', { cause: params });
         }
     }
 
-    static allocUnsafe(size: number) {
-        return new BinaryBufferLE(size);
-    }
+    static allocUnsafe = allocUnsafe ?
+        function (size: number) {
+            if (size < 256) {
+                return new this(size);
+            }
+            const b = allocUnsafe(size);
+            return new this(b.buffer, b.byteOffset, b.byteLength);
+        } :
+        function (size: number) {
+            return new this(size);
+        };
 
-    static byteLength(src: string, encoding: _StringEncoding) {
-        // return te.encode(src).buffer.byteLength;
-        return getEncoder(encoding).byteLength(src);
-    }
+    static byteLength = 
+        _native.byteLength ?? 
+        ((src: string, encoding: _StringEncoding = 'utf8') =>
+            getEncoder(encoding)/* Encoders[encoding] */.byteLength(src)
+        );
 
     // static concat(list: readonly Uint8Array[]) {
     //     // return new BinaryBufferLE(Buffer.concat(list).buffer);
@@ -149,19 +178,20 @@ class BinaryBufferLE extends Uint8Array implements BinaryBuffer {
     //     return result;
     // }
 
-    write(src: string, offset: number, encoding?: _StringEncoding) {
-        // return te.encodeInto(src, this.subarray(offset)).written + offset;
-        return getEncoder(encoding).encodeInto(src, <any> this, offset);
-        // const units = getEncoder(encoding).encode(src);
+    // will replaced by native functions or null
+    utf8Write(str: string, offset?: number, length?: number) { return 0; }
+    utf8Slice(start?: number, end?: number) { return ''; }
+    ucs2Write(str: string, offset?: number, length?: number) { return 0; }
+    ucs2Slice(start?: number, end?: number) { return ''; }
+    asciiWrite(str: string, offset?: number, length?: number) { return 0; }
+    asciiSlice(start?: number, end?: number) { return ''; }
 
-        // this.set(units, offset);
-
-        // return units.length + offset;
+    write(src: string, offset: number, encoding: _StringEncoding = 'utf8') {
+        return getEncoder(encoding).encodeInto(this, src, offset);
     }
 
-    toString(encoding?: _StringEncoding, start = 0, end = this.length) {
+    toString(encoding?: _StringEncoding, start?: number, end?: number) {
         // new Blob([this]).text()
-        // return td.decode(this.subarray(start, end));
         return getEncoder(encoding).decode(this, start, end);
     }
 
@@ -238,6 +268,7 @@ class BinaryBufferLE extends Uint8Array implements BinaryBuffer {
 
     readUInt32LE(offset = 0) {
         // ui8a.set(this.subarray(offset, offset + 4));
+        // Buffer.from([]).copy()
         ui8a[0] = this[offset];
         ui8a[1] = this[offset + 1];
         ui8a[2] = this[offset + 2];
@@ -439,6 +470,7 @@ class BinaryBufferLE extends Uint8Array implements BinaryBuffer {
 
     readDoubleLE(offset = 0) {
         // this.set(ui8a.subarray(0, 8));
+        // this.copy(ui8a, 0, offset, offset + 8);
         ui8a[0] = this[offset];
         ui8a[1] = this[offset + 1];
         ui8a[2] = this[offset + 2];
@@ -486,6 +518,13 @@ class BinaryBufferLE extends Uint8Array implements BinaryBuffer {
         return offset + 8;
     }
 }
+
+BinaryBufferLE.prototype.utf8Write = _native.encoders.utf8.write;
+BinaryBufferLE.prototype.utf8Slice = _native.encoders.utf8.slice;
+BinaryBufferLE.prototype.ucs2Write = _native.encoders.ucs2.write;
+BinaryBufferLE.prototype.ucs2Slice = _native.encoders.ucs2.slice;
+BinaryBufferLE.prototype.asciiWrite = _native.encoders.ascii.write;
+BinaryBufferLE.prototype.asciiSlice = _native.encoders.ascii.slice;
 
 class BinaryBufferBE extends Uint8Array implements BinaryBuffer {
     static from = BinaryBufferLE.from;
@@ -586,14 +625,10 @@ BinaryBufferBE.prototype.writeDoubleLE = BinaryBufferLE.prototype.writeDoubleBE;
 
 
 
-let _BBC: BinaryBufferConstructor;
+let _BBC: BinaryBufferConstructor = _native.Buffer;
 let _CBBC: BinaryBufferConstructor;
 
-if (typeof Buffer !== 'undefined') {
-    _BBC = Buffer;
-}
-
-if (ui16a[0] === 0x11 + (0x22 << 8)) {
+if (_native.endian === 'le') {
     _CBBC = BinaryBufferLE;
 } else {
     _CBBC = BinaryBufferBE;

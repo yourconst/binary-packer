@@ -1,16 +1,22 @@
+import type { BinaryBuffer } from '..';
 import { BufferPointer } from '../../BufferPointer';
+import { _native } from '../_native';
 
 export const byteLength = (src: string) => {
     return src.length;
 }
 
-export const encodeInto = (src: string, buf: Uint8Array, offset = 0) => {
-    for (let i = 0; i < src.length; ++i) {
-        buf[offset + i] = src.charCodeAt(i);
+export const _encodeInto = (buf: Uint8Array, str: string, offset = 0) => {
+    for (let i = 0; i < str.length; ++i) {
+        buf[offset + i] = str.charCodeAt(i);
     }
 
-    return offset + src.length;
+    return offset + str.length;
 }
+
+export const encodeInto = _native.encoders.ascii.write ?
+    (buf: BinaryBuffer, str: string, offset = 0) => buf.asciiWrite(str, offset) :
+    _encodeInto;
 
 export const encode = (src: string, units = src.length) => {
     const result = new Array<number>(units);

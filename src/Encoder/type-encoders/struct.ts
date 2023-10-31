@@ -86,16 +86,13 @@ export class _te_struct implements TypeEncoder<Record<string, any>> {
             };
         `)(_fs);
 
+        // according to https://stackoverflow.com/questions/16200387/are-javascript-object-properties-assigned-in-order
         this.decode = Function('_fs', `
             ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')}
 
-            return (bp) => {
-                ${_fs.map((_, i) => `const val_${i} = type_${i}.decode(bp);`).join('\n')}
-
-                return {
-                    ${_fs.map(({ name }, i) => `${name}: val_${i}`).join(',')}
-                };
-            };
+            return (bp) => ({
+                ${_fs.map(({ name }, i) => `${name}: type_${i}.decode(bp)`).join(',\n')}
+            });
         `)(_fs);
     }
 

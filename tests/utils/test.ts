@@ -28,7 +28,6 @@ export function test<T extends Schema>(
 ) {
     const customBinaryEncoder = new BinaryEncoder(binaryEncoder.getSchema(), CustomBinaryBuffer);
 
-    // @ts-ignore
     const encoders: OtherEncoder<SchemaResultType<T>>[] = [
         { name: 'Standard +check', encode: binaryEncoder.checkEncode, decode: <any> null },
         { name: 'Custom +check', encode: customBinaryEncoder.checkEncode, decode: <any> null },
@@ -44,9 +43,7 @@ export function test<T extends Schema>(
     };
 
 
-    // @ts-ignore
     Measuring.compareVoidSync(`${label}: Encode`, groupCount, [
-        // @ts-ignore
         ...encoders.map(oe => {
             const getIndex = createIndexRunner();
             return Measuring.buildShell(oe.name, count, () => { oe.lastEncoded = oe.encode(values[getIndex()]); });
@@ -60,7 +57,6 @@ export function test<T extends Schema>(
     Measuring.compareVoidSync(`${label} Decode`, groupCount, [
         ...encoders.slice(2).map(oe => {
             const getIndex = createIndexRunner();
-            // @ts-ignore
             const encoded = values.map((v: any) => oe.encode(v));
             return Measuring.buildShell(oe.name, count, () => { oe.lastDecoded = oe.decode(encoded[getIndex()]); });
         }),

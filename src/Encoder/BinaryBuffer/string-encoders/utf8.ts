@@ -1,4 +1,8 @@
+import { StringDecoder } from 'string_decoder';
+import type { BinaryBuffer } from '..';
 import { BufferPointer } from '../../BufferPointer';
+import { _native } from '../_native';
+import { decodeCodePointsArray } from './helpers';
 
 export const byteLength = (s: string) => {
     //assuming the String is UCS-2(aka UTF-16) encoded
@@ -27,94 +31,49 @@ export const byteLength = (s: string) => {
     return n;
 };
 
-export const encodeInto = (string: string, buf: Uint8Array, offset = 0) => {
-    const length = string.length;
-    let codePoint: number;
-    let leadSurrogate: number = null;
-
-    // const bp = new BufferPointer(buf, offset);
-
-    const setSurrogateComponent = () => {
-        buf[offset] = 0xEF;
-        buf[offset + 1] = 0xBF;
-        buf[offset + 2] = 0xBD;
-        offset += 3;
-    };
-
-    for (let i = 0; i < length; ++i) {
-        codePoint = string.charCodeAt(i);
-
-        // is surrogate component
-        if (codePoint > 0xD7FF && codePoint < 0xE000) {
-            // last char was a lead
-            if (!leadSurrogate) {
-                // no lead yet
-                if (codePoint > 0xDBFF) {
-                    // unexpected trail
-                    setSurrogateComponent();
-                    continue;
-                } else if (i + 1 === length) {
-                    // unpaired lead
-                    setSurrogateComponent();
-                    continue;
-                }
-
-                // valid lead
-                leadSurrogate = codePoint;
-
-                continue;
-            }
-
-            // 2 leads in a row
-            if (codePoint < 0xDC00) {
-                setSurrogateComponent();
-                leadSurrogate = codePoint;
-                continue;
-            }
-
-            // valid surrogate pair
-            codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000;
-        } else if (leadSurrogate) {
-            // valid bmp char, but last char was a lead
-            setSurrogateComponent();
-        }
-
-        leadSurrogate = null;
-
-        // encode utf8
-        if (codePoint < 0x80) {
-            buf[offset++] = codePoint;
-        } else if (codePoint < 0x800) {
-            buf[offset] = codePoint >> 0x6 | 0xC0;
-            buf[offset + 1] = codePoint & 0x3F | 0x80;
-            offset += 2;
-        } else if (codePoint < 0x10000) {
-            buf[offset] = codePoint >> 0xC | 0xE0;
-            buf[offset + 1] = codePoint >> 0x6 & 0x3F | 0x80;
-            buf[offset + 2] = codePoint & 0x3F | 0x80;
-            offset += 3;
-        } else if (codePoint < 0x110000) {
-            buf[offset] = codePoint >> 0x12 | 0xF0;
-            buf[offset + 1] = codePoint >> 0xC & 0x3F | 0x80;
-            buf[offset + 2] = codePoint >> 0x6 & 0x3F | 0x80;
-            buf[offset + 3] = codePoint & 0x3F | 0x80;
-            offset += 4;
+const _encodeInto = (buf: Uint8Array, str: string, offset = 0) => {
+    var c1, // character 1
+        c2; // character 2
+    for (var i = 0; i < str.length; ++i) {
+        c1 = str.charCodeAt(i);
+        if (c1 < 128) {
+            buf[offset++] = c1;
+        } else if (c1 < 2048) {
+            buf[offset++] = c1 >> 6       | 192;
+            buf[offset++] = c1       & 63 | 128;
+        } else if ((c1 & 0xFC00) === 0xD800 && ((c2 = str.charCodeAt(i + 1)) & 0xFC00) === 0xDC00) {
+            c1 = 0x10000 + ((c1 & 0x03FF) << 10) + (c2 & 0x03FF);
+            ++i;
+            buf[offset++] = c1 >> 18      | 240;
+            buf[offset++] = c1 >> 12 & 63 | 128;
+            buf[offset++] = c1 >> 6  & 63 | 128;
+            buf[offset++] = c1       & 63 | 128;
         } else {
-            throw new Error('Invalid code point');
+            buf[offset++] = c1 >> 12      | 224;
+            buf[offset++] = c1 >> 6  & 63 | 128;
+            buf[offset++] = c1       & 63 | 128;
         }
     }
-
     return offset;
-}
+};
 
-export const encode = (string: string, units = Infinity) => {
+export const encodeInto = _native.encoders.utf8.write ?
+    (buf: BinaryBuffer, str: string, offset = 0) => {
+        if (str.length < 40) {
+            return _encodeInto(buf, str, offset);
+        }
+        return buf.utf8Write(str, offset);
+    } :
+    _encodeInto;
+
+export const encode = (s: string, units = Infinity) => {
     const bytes: number[] = [];
-    const length = string.length;
+    const length = s.length;
     let codePoint: number;
     let leadSurrogate: number = null;
 
     for (let i = 0; i < length; ++i) {
-        codePoint = string.charCodeAt(i);
+        codePoint = s.charCodeAt(i);
 
         // is surrogate component
         if (codePoint > 0xD7FF && codePoint < 0xE000) {
@@ -186,22 +145,8 @@ export const encode = (string: string, units = Infinity) => {
     return bytes;
 }
 
-const getStringFromCodes = (codes: number[]) => {
-    return String.fromCharCode.apply(
-        String,
-        codes,
-    );
-};
-
-// Based on http://stackoverflow.com/a/22747272/680742, the browser with
-// the lowest limit is Chrome, with 0x10000 args.
-// We go 1 magnitude less, for safety
-const MAX_ARGUMENTS_LENGTH = 0x1000;
-
-export const decode = (buf: Uint8Array, start = 0, end = buf.length) => {
-    end = Math.min(buf.length, end);
+export const _decode = (buf: Uint8Array, start: number, end: number) => {
     const codes: number[] = [];
-    // const res: string[] = [];
 
     let i = start;
     while (i < end) {
@@ -267,42 +212,40 @@ export const decode = (buf: Uint8Array, start = 0, end = buf.length) => {
 
         codes.push(codePoint);
         i += bytesPerSequence;
-
-        // if (codes.length >= MAX_ARGUMENTS_LENGTH - 4) {
-        //     res.push(getStringFromCodes(codes));
-        //     codes.length = 0;
-        // }
     }
 
-    // if (codes.length) {
-    //     res.push(getStringFromCodes(codes));
-    // }
-
-    // return res.join('');
     return decodeCodePointsArray(codes);
 }
 
-const decodeCodePointsArray = (codePoints) => {
-    const len = codePoints.length;
-    if (len <= MAX_ARGUMENTS_LENGTH) {
-        return String.fromCharCode.apply(String, codePoints); // avoid extra slice()
-    }
-
-    // Decode in chunks to avoid "call stack size exceeded".
-    let res = '';
-    // const res: string[] = [];
-    let i = 0;
-    while (i < len) {
-        // res.push(String.fromCharCode.apply(
-        //     String,
-        //     codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
-        // ));
-        
-        res += String.fromCharCode.apply(
-            String,
-            codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
-        );
-    }
-    return res;
-    // return res.join('');
-}
+const sd = _native.tryCreateStringDecoder('utf8');
+export const decode =
+    // (buf: BinaryBuffer, start: number, end: number) => buf.utf8Slice(start, end);
+    // _decode;
+    // (buf: BinaryBuffer, start: number, end: number) => sd.end(Buffer.from(buf.buffer, start, end - start));
+    sd ?
+    (_native.encoders.utf8.slice ?
+        (buf: BinaryBuffer, start: number, end: number) => {
+            if (end - start < 40) {
+                return _decode(buf, start, end);
+            }
+            if (end - start < 53) {
+                return buf.utf8Slice(start, end);
+            }
+            return sd.end(Buffer.from(buf.buffer, start, end - start));
+        } :
+        (buf: BinaryBuffer, start: number, end: number) => {
+            if (end - start < 53) {
+                return _decode(buf, start, end);
+            }
+            return sd.end(Buffer.from(buf.buffer, start, end - start));
+        }
+    ) :
+    (_native.encoders.utf8.slice ?
+        (buf: BinaryBuffer, start: number, end: number) => {
+            if (end - start < 40) {
+                return _decode(buf, start, end);
+            }
+            return buf.utf8Slice(start, end);
+        } :
+        _decode
+    );

@@ -1,30 +1,30 @@
 import { Encoder, Type } from '../src';
 import { Type as PBType, Field, Enum } from 'protobufjs';
 import * as BE from 'binary-encoder';
-import {
-    randString, randInt, randBigInt, randBoolNull, getOtherBinaryEncoder, getProtobufEncoder, test,
-} from './utils';
+import { Helpers, Test } from './utils2';
 
 enum TypeEnum {
-    'a',
-    'b',
-    'c',
+    'a' = 1,
+    'b' = 2,
+    'c' = 3,
 }
 
-const randEnum = () => [TypeEnum.a, TypeEnum.b, TypeEnum.c][Math.trunc(3 * Math.random())];
+const pbTypeEnum = Object.fromEntries(Object.values(TypeEnum).map((v, i) => ([v, i])));
+
+const randEnum = () => [TypeEnum.a, TypeEnum.b, TypeEnum.c][Helpers.Random.uint(3)];
 
 
 // test(
 //     {
 //         label: 'Struct BE with string (utf8)',
 //         count: 5e3,
-//         groupCount: 500,
+//         repeatCount: 500,
 //         // @ts-ignore
 //         binaryEncoder: new Encoder(Type.Array(Type.Struct({
 //             id: Type.UInt32(),
 //             count: Type.UInt16(),
 //             str: Type.String(Type.ULEB128(), 'utf8'),
-//         }), Type.ULEB128())),
+//         }))),
 //         otherEncoders: [getOtherBinaryEncoder(BE.Array(BE.Structure({
 //             id: BE.Uint32(),
 //             // type: BE.OneOf([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
@@ -33,177 +33,118 @@ const randEnum = () => [TypeEnum.a, TypeEnum.b, TypeEnum.c][Math.trunc(3 * Math.
 //             str: BE.String(),
 //         })))],
 //     },
-//     new Array(100).fill(1).map(() => new Array(randInt(70, 100)).fill(1).map(() => ({
-//         id: randInt(0, 2 ** 32),
-//         count: randInt(0, 2 ** 16),
-//         str: randString(randInt(10, 123)),
+//     new Array(100).fill(1).map(() => new Array(Helpers.Random.int(70, 100)).fill(1).map(() => ({
+//         id: Helpers.Random.int(0, 2 ** 32),
+//         count: Helpers.Random.int(0, 2 ** 16),
+//         str: Helpers.Random.stringUTF8(Helpers.Random.int(10, 123)),
 //     }))),
 // );
 
-test(
+Test.test(
     {
         label: 'Struct',
         count: 5e3,
-        groupCount: 500,
-        // @ts-ignore
+        repeatCount: 100,
         binaryEncoder: new Encoder(Type.Struct({
             array: Type.Array(Type.Struct({
-                id: Type.UInt32(),
-                type: Type.Enum([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
-                count: Type.UInt16(),
+                id: Type.Int32(),
+                type: Type.Enum(TypeEnum),
+                count: Type.UInt32(),
                 enabled: Type.Nullable(Type.Bool()), // Type.Bool(), //
-            }), Type.ULEB128()),
+            })),
         })),
-        otherEncoders: [getProtobufEncoder(
+        otherEncoders: [Helpers.Encoder.getProtobuf(
             new PBType('ArrayStruct')
             .add(new PBType('Struct')
-                .add(new Enum('TypeEnum', Object.fromEntries(Object.values(TypeEnum).map((v, i) => ([v, i])))))
-                .add(new Field('id', 1, 'uint32'))
+                .add(new Enum('TypeEnum', pbTypeEnum))
+                .add(new Field('id', 1, 'sfixed32'))
                 .add(new Field('type', 2, 'TypeEnum'))
-                .add(new Field('count', 3, 'uint32'))
+                .add(new Field('count', 3, 'fixed32'))
                 .add(new Field('enabled', 4, 'bool', 'optional'))
             ).add(new Field('array', 1, 'Struct', 'repeated')),
         )],
     },
-    new Array(100).fill(1).map(() => ({
-        array: new Array(randInt(70, 100)).fill(1).map(() => ({
-            id: randInt(0, 2 ** 32),
+    Helpers.generateArray(100, () => ({
+        array: Helpers.generateArray(1/* Helpers.Random.int(70, 100) */, () => ({
+            id: Helpers.Random.int32(),
             type: randEnum(),
-            count: randInt(0, 2 ** 16),
-            enabled: randBoolNull(),
+            count: Helpers.Random.uint32(),
+            enabled: Helpers.Random.boolNull(),
         })),
     })),
 );
 
-test(
+Test.test(
     {
         label: 'Struct with bigint',
         count: 5e3,
-        groupCount: 500,
+        repeatCount: 100,
         binaryEncoder: new Encoder(Type.Struct({
             array: Type.Array(Type.Struct({
-                id: Type.UInt32(),
-                type: Type.Enum([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
-                count: Type.UInt16(),
+                id: Type.Int32(),
+                type: Type.Enum(TypeEnum),
+                count: Type.UInt32(),
                 enabled: Type.Nullable(Type.Bool()), // Type.Bool(), //
                 bigint: Type.Int64(),
-            }), Type.ULEB128()),
+            })),
         })),
-        otherEncoders: [getProtobufEncoder(
+        otherEncoders: [Helpers.Encoder.getProtobuf(
             new PBType('ArrayStruct')
             .add(new PBType('Struct')
-                .add(new Enum('TypeEnum', Object.fromEntries(Object.values(TypeEnum).map((v, i) => ([v, i])))))
-                .add(new Field('id', 1, 'uint32'))
+                .add(new Enum('TypeEnum', pbTypeEnum))
+                .add(new Field('id', 1, 'sfixed32'))
                 .add(new Field('type', 2, 'TypeEnum'))
-                .add(new Field('count', 3, 'uint32'))
+                .add(new Field('count', 3, 'fixed32'))
                 .add(new Field('enabled', 4, 'bool', 'optional'))
-                .add(new Field('bigint', 5, 'int64'))
+                .add(new Field('bigint', 5, 'sfixed64'))
             ).add(new Field('array', 1, 'Struct', 'repeated')),
         )],
     },
-    new Array(100).fill(1).map(() => ({
-        array: new Array(randInt(70, 100)).fill(1).map(() => ({
-            id: randInt(0, 2 ** 32),
+    Helpers.generateArray(100, () => ({
+        array: Helpers.generateArray(100, () => ({
+            id: Helpers.Random.int32(),
             type: randEnum(),
-            count: randInt(0, 2 ** 16),
-            enabled: randBoolNull(),
-            bigint: randBigInt(),
+            count: Helpers.Random.uint32(),
+            enabled: Helpers.Random.boolNull(),
+            bigint: Helpers.Random.bigInt(),
         })),
     })),
 );
 
 
-test(
+Test.test(
     {
         label: 'Struct with string (utf8)',
         count: 5e3,
-        groupCount: 500,
+        repeatCount: 100,
         binaryEncoder: new Encoder(Type.Struct({
             array: Type.Array(Type.Struct({
-                id: Type.UInt32(),
-                type: Type.Enum([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
-                count: Type.UInt16(),
+                id: Type.Int32(),
+                type: Type.Enum(TypeEnum),
+                count: Type.UInt32(),
                 enabled: Type.Nullable(Type.Bool()), // Type.Bool(), //
-                str: Type.String(Type.ULEB128(), 'utf8'),
-            }), Type.ULEB128()),
+                str: Type.String('utf8'),
+            })),
         })),
-        otherEncoders: [getProtobufEncoder(
+        otherEncoders: [Helpers.Encoder.getProtobuf(
             new PBType('ArrayStructWithString')
             .add(new PBType('StructWithString')
-                .add(new Enum('TypeEnum', Object.fromEntries(Object.values(TypeEnum).map((v, i) => ([v, i])))))
-                .add(new Field('id', 1, 'uint32'))
+                .add(new Enum('TypeEnum', pbTypeEnum))
+                .add(new Field('id', 1, 'sfixed32'))
                 .add(new Field('type', 2, 'TypeEnum'))
-                .add(new Field('count', 3, 'uint32'))
+                .add(new Field('count', 3, 'fixed32'))
                 .add(new Field('enabled', 4, 'bool', 'optional'))
                 .add(new Field('str', 5, 'string')),
             ).add(new Field('array', 1, 'StructWithString', 'repeated')),
         )],
     },
-    new Array(100).fill(1).map(() => ({
-        array: new Array(randInt(70, 100)).fill(1).map(() => ({
-            id: randInt(0, 2 ** 32),
+    Helpers.generateArray(100, () => ({
+        array: Helpers.generateArray(100, () => ({
+            id: Helpers.Random.int32(),
             type: randEnum(),
-            count: randInt(0, 2 ** 16),
-            enabled: randBoolNull(),
-            str: randString(randInt(10, 49)),
+            count: Helpers.Random.uint32(),
+            enabled: Helpers.Random.boolNull(),
+            str: Helpers.Random.stringUTF8(Helpers.Random.int(10, 49)),
         })),
     })),
 );
-
-// @ts-ignore
-test(
-    {
-        label: 'Struct with string (ascii)',
-        count: 5e3,
-        groupCount: 500,
-        binaryEncoder: new Encoder(Type.Struct({
-            array: Type.Array(Type.Struct({
-                id: Type.UInt32(),
-                type: Type.Enum([TypeEnum.a, TypeEnum.b, TypeEnum.c]),
-                count: Type.UInt16(),
-                enabled: Type.Nullable(Type.Bool()), // Type.Bool(), //
-                str: Type.String(Type.ULEB128(), 'ascii'),
-            }), Type.ULEB128()),
-        })),
-    },
-    new Array(100).fill(1).map(() => ({
-        array: new Array(randInt(70, 100)).fill(1).map(() => ({
-            id: randInt(0, 2 ** 32),
-            type: randEnum(),
-            count: randInt(0, 2 ** 16),
-            enabled: randBoolNull(),
-            str: randString(randInt(10, 49)),
-        })),
-    })),
-);
-
-
-const bpString = new Encoder(Type.Struct({
-    str: Type.String(Type.ULEB128(), 'utf8'),
-}));
-
-const pTypetring = getProtobufEncoder(
-    new PBType('String')
-        .add(new Field('str', 1, 'string')),
-);
-
-const beString = getOtherBinaryEncoder(BE.Structure({
-    str: BE.String(),
-}));
-
-for (let i = 0; i <= 11; ++i) {
-    test(
-        {
-            // @ts-ignore
-            label: `String ${2 ** i}`,
-            count: 5e3,
-            groupCount: 100,
-            binaryEncoder: bpString,
-            otherEncoders: [pTypetring, beString],
-        },
-        new Array(100).fill(1).map(() => ({ str: randString(2 ** i) })),
-    );
-}
-
-
-setTimeout(console.log, 100000);

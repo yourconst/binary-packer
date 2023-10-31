@@ -27,7 +27,7 @@ export class _te_enum implements TypeEncoder {
         if (count <= (1 << 8)) {
             this._type = parseLengthSchema('uint8');
         } else if (count <= (1 << 16)) {
-            this._type = parseLengthSchema('uint16_le');
+            this._type = parseLengthSchema(schema.bigIndexType ?? 'uvarint32');
         } else {
             throw new Error('Too many unique values for enum', { cause: schema });
         }
@@ -58,6 +58,7 @@ export class _te_enum implements TypeEncoder {
         return {
             type: 'enum',
             values: this._indexValue,
+            bigIndexType: <Types.UVarInt32>this._type.getSchema(),
         };
     }
 }
