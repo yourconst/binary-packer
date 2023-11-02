@@ -5,7 +5,7 @@
     "target": "es2020",
     "moduleResolution": "Node",
     "declaration": true,
-    "removeComments": true,
+    "removeComments": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
