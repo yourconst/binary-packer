@@ -47,7 +47,7 @@ export class _te_string implements TypeEncoder<string> {
         this.checkGetSize = <any> Function('byteLength, _stringLengthCache, lengthType', `
             return (value, path) => {
                 if (typeof value !== 'string') {
-                    throw new Error(\`Is not string (\${path}, value: \${value}), { cause: value });
+                    throw new Error(\`Is not string (\${path}, value: \${value})\`, { cause: value });
                 }
                 const _s = byteLength(value);
                 _stringLengthCache.add(_s);

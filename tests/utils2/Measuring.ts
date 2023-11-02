@@ -227,7 +227,7 @@ export namespace Measuring {
                     {field:'mmax', color:'yellow', align:'number'/* , number: { multiplier: 1 / 1000 } */ },
                 ],
                 order: [{ field: 'avg' }, { field: 'max' }, { field: 'min' }],
-                number: { decimals, multiplier: resMult },
+                number: { decimals, multiplier: undefined },
             });
 
             return this;

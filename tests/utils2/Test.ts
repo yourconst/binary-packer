@@ -63,7 +63,7 @@ export namespace Test {
                     for (const v of values) {
                         const b = e.encode(v);
                         m.update(b.length);
-                        mz.update(zlib.gzipSync(b, { level: 9 }).length);
+                        mz.update(zlib.gzipSync(Buffer.from(b['buffer']), { level: 9 }).length);
                     }
 
                     return {
