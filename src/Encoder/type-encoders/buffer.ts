@@ -13,16 +13,16 @@ export class _te_buffer implements TypeEncoder<Uint8Array> {
     private readonly _lengthType: TypeEncoder<number>;
 
     constructor(readonly schema: Types.Buffer) {
-        this._lengthType = parseLengthSchema(schema.lengthType || 'uint32_le');
+        this._lengthType = parseLengthSchema(schema.lengthType || 'uvarint32');
     }
 
     getSize(value: Uint8Array) {
         return this._lengthType.getSize(value.length) + value.length;
     }
 
-    checkGetSize(value: Uint8Array) {
+    checkGetSize(value: Uint8Array, path: string) {
         if (!(value instanceof Uint8Array)) {
-            throw new Error();
+            throw new Error(`Is not Uint8Array (${path}, value: ${value})`, { cause: value });
         }
         
         return this.getSize(value);

@@ -10,11 +10,7 @@ export class _te_enum implements TypeEncoder {
     readonly _type: TypeEncoder<number>;
 
     constructor(readonly schema: Types.Enum) {
-        this._indexValue = [...new Set(
-            Array.isArray(schema.values) ?
-                schema.values :
-                Object.values(schema.values),
-        )];
+        this._indexValue = [...new Set(schema.values)];
 
         this._valueIndex = new Map(this._indexValue.map((value, i) => ([value, i])));
 
@@ -37,9 +33,9 @@ export class _te_enum implements TypeEncoder {
         return this._type.getSize(null);
     }
 
-    checkGetSize(value: any) {
+    checkGetSize(value: any, path: string) {
         if (!this._valueIndex.has(value)) {
-            throw new Error();
+            throw new Error(`Is not enum value (${path}, value: ${value})`, { cause: value });
         }
 
         // Because it is static

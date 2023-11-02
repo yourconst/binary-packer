@@ -20,8 +20,10 @@ function getDeviceEndian(): Endian {
 const B = globalThis['Buffer'];
 let SD: typeof StringDecoder;
 try {
-    SD = require('node:string_decoder').StringDecoder;
-} finally {}
+    SD = globalThis?.require?.('node:string_decoder')?.StringDecoder;
+} catch(error) {
+    console.error('Some error with StringDecoder' + error, { cause: error });
+}
 
 const isBufferNative = !!checkFNAndTryGet(B?.prototype?.utf8Write);
 

@@ -1,4 +1,5 @@
 import { Helpers } from "./Helpers";
+import { MemoryMeasurer } from "./MemoryMeasurer";
 import { Print } from "./Print";
 import { Timer } from "./Timer";
 
@@ -42,20 +43,21 @@ export namespace Measuring {
             return this;
         }
 
-        toJSON(decimals = 100, mult = 1) {
+        toJSON() {
             return {
                 label: this.label,
-                avg: +(this.avg * mult).toFixed(decimals),
-                min: +(this.min * mult).toFixed(decimals),
-                max: +(this.max * mult).toFixed(decimals),
-                amount: +(this.amount * mult).toFixed(decimals),
-                count: +(this.count * mult).toFixed(decimals),
+                avg: this.avg,
+                min: this.min,
+                max: this.max,
+                amount: this.amount,
+                count: this.count,
             };
         }
     }
 
     export class MeasureShell<T extends any[] = any, R = any> {
         readonly measurement: Measurement;
+        readonly memoryMeasurement: Measurement;
 
         constructor(
             readonly label: string,
@@ -63,6 +65,7 @@ export namespace Measuring {
             readonly getParams: () => T,
         ) {
             this.measurement = new Measurement(this.label);
+            this.memoryMeasurement = new Measurement(this.label);
         }
 
         warmup(count: number) {
@@ -74,23 +77,24 @@ export namespace Measuring {
         }
 
         measure(count: number) {
-            globalThis.gc?.();
+            const mm = new MemoryMeasurer();
             const t = new Timer();
-            const m = new Measurement();
 
             for (let i=0; i<count; ++i) {
+                globalThis.gc?.();
+                mm.start();
                 t.start();
                 this.f(...this.getParams());
-                m.update(t.getDurationMs());
+                this.measurement.update(t.getDurationMs());
+                this.memoryMeasurement.update(mm.getValue());
             }
 
-            this.measurement.concat(m);
-
-            return m;
+            return this;
         }
 
         measureBulk(count: number) {
             globalThis.gc?.();
+            const mm = new MemoryMeasurer().start();
             const t = new Timer().start();
 
             for (let i=0; i<count; ++i) {
@@ -98,6 +102,7 @@ export namespace Measuring {
             }
 
             this.measurement.update(t.getDurationMs(), count);
+            this.memoryMeasurement.update(mm.getValue(), count);
 
             return this;
         }
@@ -181,29 +186,48 @@ export namespace Measuring {
             
             const resMult = { s: 0.001, ms: 1, us: 1000, ns: 1000000 }[resolution];
 
-            const base = this.shells[0].measurement.toJSON(decimals, resMult);
+            const base = this.shells[0].measurement.toJSON();
             const results = this.shells.map(s => {
-                const r = s.measurement.toJSON(decimals, resMult);
+                const r = s.measurement.toJSON();
 
                 base.avg = Math.min(base.avg, r.avg);
                 base.min = Math.min(base.min, r.min);
                 base.max = Math.min(base.max, r.max);
 
-                return r;
+                return {
+                    ...r,
+                    'memory:': '',
+                    mavg: s.memoryMeasurement.avg,
+                    mmin: s.memoryMeasurement.min,
+                    mmax: s.memoryMeasurement.max,
+                };
             });
 
             Print.table(results.map(r => ({
                 ...r,
-                'avg%': +(r.avg/base.avg * 100 - 100).toFixed(decimals),
-                'min%': +(r.min/base.min * 100 - 100).toFixed(decimals),
-                'max%': +(r.max/base.max * 100 - 100).toFixed(decimals),
+                // 'avg%': +(r.avg/base.avg * 100 - 100).toFixed(decimals),
+                // 'min%': +(r.min/base.min * 100 - 100).toFixed(decimals),
+                // 'max%': +(r.max/base.max * 100 - 100).toFixed(decimals),
+                'avg%': `x ${r.avg/base.avg}`,
+                'min%': `x ${r.min/base.min}`,
+                'max%': `x ${r.max/base.max}`,
             })), {
                 header: {
                     name: `${this.label}. Time resolution: ${resolution}. Per unit count: ${this.shells[0].measurement.count}`,
                     color: 'yellow',
                 },
-                columns: ['label', 'avg', {field:'avg%', color:'green'}, 'min', {field:'min%', color:'green'}, 'max', {field:'max%', color:'green'}],
+                columns: [
+                    'label',
+                    'avg', {field:'avg%', color:'green', align:'number'},
+                    'min', {field:'min%', color:'green', align:'number'},
+                    'max', {field:'max%', color:'green', align:'number'},
+                    'memory:',
+                    {field:'mavg', color:'yellow', align:'number'/* , number: { multiplier: 1 / 1000 } */ },
+                    {field:'mmin', color:'yellow', align:'number'/* , number: { multiplier: 1 / 1000 } */ },
+                    {field:'mmax', color:'yellow', align:'number'/* , number: { multiplier: 1 / 1000 } */ },
+                ],
                 order: [{ field: 'avg' }, { field: 'max' }, { field: 'min' }],
+                number: { decimals, multiplier: resMult },
             });
 
             return this;

@@ -2,6 +2,10 @@ import { TypeEncoder } from '../TypeEncoder.interface';
 import * as Types from '../../types/types';
 import { parseLengthSchema, parseSchema } from '.';
 
+function escape(name: string, delim = "'") {
+    return name.replaceAll('\\', '\\\\').replaceAll(`${delim}`, '\\');
+}
+
 type Field = {
     name: string;
     type: TypeEncoder;
@@ -47,7 +51,7 @@ export class _te_struct implements TypeEncoder<Record<string, any>> {
                 ${this._notFixedFields.map((_, i) => `const type_${i} = _nffs[${i}].type;`).join('\n')};
 
                 return (value) => {
-                    return _fixedFieldsSize + ${this._notFixedFields.map(({ name }, i) => `type_${i}.getSize(value.${name})`).join('+')};
+                    return _fixedFieldsSize + ${this._notFixedFields.map(({ name }, i) => `type_${i}.getSize(value.${escape(name)})`).join('+')};
                 };
             `)(this._fixedFieldsSize, this._notFixedFields);
             // this.getSize = (value) =>
@@ -60,7 +64,7 @@ export class _te_struct implements TypeEncoder<Record<string, any>> {
                 ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')};
 
                 return (value) => {
-                    return ${_fs.map(({ name }, i) => `type_${i}.getSize(value.${name})`).join('+')};
+                    return ${_fs.map(({ name }, i) => `type_${i}.getSize(value.${escape(name)})`).join('+')};
                 };
             `)(_fs);
             // this.getSize = (value) =>
@@ -73,8 +77,11 @@ export class _te_struct implements TypeEncoder<Record<string, any>> {
         this.checkGetSize = Function('_fs', `
                 ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')};
 
-                return (value) => {
-                    return ${_fs.map(({ name }, i) => `type_${i}.checkGetSize(value.${name})`).join('+')};
+                return (value, path) => {
+                    if (!(value instanceof Object)) {
+                        throw new Error(\`Is not object (\${path}, value: \${value})\`, { cause: value });
+                    }
+                    return ${_fs.map(({ name }, i) => `type_${i}.checkGetSize(value.${escape(name)}, path + '.${escape(name)}')`).join('+')};
                 };
             `)(_fs);
 
@@ -82,7 +89,7 @@ export class _te_struct implements TypeEncoder<Record<string, any>> {
             ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')}
 
             return (bp, value) => {
-                ${_fs.map(({ name }, i) => `type_${i}.encode(bp, value.${name});`).join('\n')}
+                ${_fs.map(({ name }, i) => `type_${i}.encode(bp, value.${escape(name)});`).join('\n')}
             };
         `)(_fs);
 
@@ -91,7 +98,7 @@ export class _te_struct implements TypeEncoder<Record<string, any>> {
             ${_fs.map((_, i) => `const type_${i} = _fs[${i}].type;`).join('\n')}
 
             return (bp) => ({
-                ${_fs.map(({ name }, i) => `${name}: type_${i}.decode(bp)`).join(',\n')}
+                ${_fs.map(({ name }, i) => `${escape(name)}: type_${i}.decode(bp)`).join(',\n')}
             });
         `)(_fs);
     }

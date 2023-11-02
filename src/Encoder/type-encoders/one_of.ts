@@ -25,7 +25,7 @@ export class _te_one_of implements TypeEncoder<Record<string, any>> {
         if (count <= (1 << 8)) {
             this._type = parseLengthSchema('uint8');
         } else if (count <= (1 << 16)) {
-            this._type = parseLengthSchema('uint16_le');
+            this._type = parseLengthSchema('uvarint32');
         } else {
             throw new Error('Too many unique values for enum', { cause: schema });
         }
@@ -37,19 +37,26 @@ export class _te_one_of implements TypeEncoder<Record<string, any>> {
         return this._type.getSize(r.index) + r.type.getSize(value[key]);
     }
 
-    checkGetSize(value: Record<string, any>) {
+    checkGetSize(value: Record<string, any>, path: string) {
+        if (!(value instanceof Object)) {
+            throw new Error(`Is not object (${path}, value: ${value})`, { cause: value });
+        }
+
         const keys = Object.keys(value);
         if (keys.length !== 1) {
-            throw new Error();
+            throw new Error(`Is not single-property object (${path}, value: ${value})`, { cause: value });
         }
 
         const key = keys[0];
         const r = this._valueIndex.get(key);
-        if (!r) {
-            throw new Error();
+        if (r === undefined) {
+            throw new Error(`Has unknown property (${path}, value: ${value}, property: ${key})`, { cause: {
+                value,
+                allowedProperties: [...this._valueIndex.keys()],
+            } });
         }
         
-        return this._type.checkGetSize(r.index) + r.type.checkGetSize(value[key]);
+        return this._type.checkGetSize(r.index, path) + r.type.checkGetSize(value[key], path + `.${key}`);
     }
 
     encode(bp: BufferPointer, value: any) {

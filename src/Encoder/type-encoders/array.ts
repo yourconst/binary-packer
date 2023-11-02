@@ -29,10 +29,13 @@ export class _te_array implements TypeEncoder {
         }
     }
 
-    checkGetSize(value: any[]) {
+    checkGetSize(value: any[], path: string) {
+        if (!Array.isArray(value)) {
+            throw new Error(`Is not array (${path}, value: ${value})`, { cause: value });
+        }
         return value.reduce(
-            (acc, el) => acc + this._child.checkGetSize(el),
-            this._lengthType.checkGetSize(value.length),
+            (acc, el, index) => acc + this._child.checkGetSize(el, path + `[${index}]`),
+            this._lengthType.checkGetSize(value.length, path + '.length'),
         );
     }
 

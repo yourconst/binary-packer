@@ -6,6 +6,8 @@ import { Helpers } from "./Helpers";
 import { Measuring } from "./Measuring";
 import { Print } from "./Print";
 
+import zlib from 'zlib';
+
 export namespace Test {
     export function test<T extends Type.Schema>({
         label,
@@ -56,16 +58,25 @@ export namespace Test {
             Print.table(
                 encoders.map(e => {
                     const m = new Measuring.Measurement(e.label);
+                    const mz = new Measuring.Measurement(e.label);
 
                     for (const v of values) {
-                        m.update(e.encode(v).length);
+                        const b = e.encode(v);
+                        m.update(b.length);
+                        mz.update(zlib.gzipSync(b, { level: 9 }).length);
                     }
 
-                    return m;
+                    return {
+                        ...m.toJSON(),
+                        'gzip:': '',
+                        zavg: mz.avg,
+                        zmin: mz.min,
+                        zmax: mz.max,
+                    };
                 }),
                 {
                     header: { name: 'Buffer size: ' + label, color: 'lightblue' },
-                    columns: ['label', 'avg', 'min', 'max'],
+                    columns: ['label', 'avg', 'min', 'max', 'gzip:', 'zavg', 'zmin', 'zmax'],
                     order: [{field: 'avg'}, {field: 'max'}, {field: 'min'}],
                 },
             );
@@ -79,7 +90,7 @@ export namespace Test {
                 Helpers.createCycleArrayRunner(valuesAsArgs),
             )))
                 .warmup(warmupRepeatCount, warmupCount)
-                .measure(repeatCount, count)
+                .measureBulk(repeatCount, count)
                 .printResultOrdered()
                 /* .reset()
                 .measureBulk(repeatCount, count)
@@ -93,7 +104,7 @@ export namespace Test {
                 Helpers.createCycleArrayRunner(values.map(v => (<[Uint8Array]>[e.encode(v)]))),
             )))
                 .warmup(warmupRepeatCount, warmupCount)
-                .measure(repeatCount, count)
+                .measureBulk(repeatCount, count)
                 .printResultOrdered();
             }
     }

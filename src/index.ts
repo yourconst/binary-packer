@@ -6,5 +6,6 @@ export {
     Encoder as BinaryEncoder
 } from './Encoder';
 export * as Type from './types';
+export * from './types';
 export * from './Encoder/BinaryBuffer';
 export { getArrayBuffer } from './Encoder/type-encoders';

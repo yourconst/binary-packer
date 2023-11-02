@@ -2,12 +2,8 @@ import { TypeEncoder } from '../TypeEncoder.interface';
 import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 
-const maxUint31 = (2 ** 32) - 1;
-const checkRange = (value: number) => {
-    if (!isFinite(value) || value < 0 || value > maxUint31 || Math.trunc(value) !== value) {
-        throw new Error(`Value doesn't satisfy constraint uint31`, { cause: value });
-    }
-};
+const maxUInt32 = (2 ** 32) - 1;
+
 // const getSize = (value: number) => Math.ceil((Math.log2(value < 2 ? 2 : value + 1) / 7));
 const getSize = (value: number) =>
     value < 128 ? 1 :
@@ -25,8 +21,10 @@ export class _te_uvarint32 implements TypeEncoder<number> {
         return getSize(value);
     }
 
-    checkGetSize(value: number) {
-        checkRange(value);
+    checkGetSize(value: number, path: string) {
+        if (!isFinite(value) || value < 0 || maxUInt32 < value || Math.trunc(value) !== value) {
+            throw new Error(`Is not uint32 (${path}, value: ${value})`, { cause: value });
+        }
 
         return getSize(value);
     }

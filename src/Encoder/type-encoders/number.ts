@@ -53,25 +53,25 @@ export class _te_number implements TypeEncoder<number | bigint> {
         const { write, read, size, min, max, isInt, isBigInt, isFloat } = info;
         
         if (isInt) {
-            this.checkGetSize = (value: number) => {
+            this.checkGetSize = (value: number, path: string) => {
                 if (typeof value !== 'number' || value < min || value > max || Math.trunc(value) !== value) {
-                    throw new Error();
+                    throw new Error(`Is not ${schema} (${path}, value: ${value})`, { cause: value });
                 }
 
                 return size;
             };
         } else if (isBigInt) {
-            this.checkGetSize = (value: bigint) => {
+            this.checkGetSize = (value: bigint, path: string) => {
                 if (typeof value !== 'bigint') {
-                    throw new Error();
+                    throw new Error(`Is not bigint (${path}, value: ${value})`, { cause: value });
                 }
 
                 return size;
             };
         } else {
-            this.checkGetSize = (value: number) => {
+            this.checkGetSize = (value: number, path: string) => {
                 if (typeof value !== 'number') {
-                    throw new Error();
+                    throw new Error(`Is not ${schema} (${path}, value: ${value})`, { cause: value });
                 }
 
                 return size;

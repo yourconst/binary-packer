@@ -5,6 +5,7 @@ import { BinaryBuffer, BinaryBufferLike, CustomBinaryBuffer } from './BinaryBuff
 import { BufferPointer } from './BufferPointer';
 import { parseSchema } from './type-encoders';
 import { _stringLengthCache } from './type-encoders/string';
+import { _transformCache } from './type-encoders/transform';
 import { TypeEncoder } from './TypeEncoder.interface';
 
 const BBC = argd.CustomBinaryBuffer ? CustomBinaryBuffer : BinaryBuffer;
@@ -17,8 +18,10 @@ export class Encoder<S extends Schema/* , BBC extends typeof BinaryBuffer = type
     }
 
     encode = (value: SchemaResultType<S>) => {
-        _stringLengthCache.reset();
+        _stringLengthCache.clear();
+        _transformCache.clear();
         const buffer = BBC.allocUnsafe(this._type.getSize(value));
+        // _transformCache.clear();
         
         this._type.encode(new BufferPointer(buffer), value);
 
@@ -26,8 +29,10 @@ export class Encoder<S extends Schema/* , BBC extends typeof BinaryBuffer = type
     }
 
     checkEncode = (value: SchemaResultType<S>) => {
-        _stringLengthCache.reset();
-        const buffer = BBC.allocUnsafe(this._type.checkGetSize(value));
+        _stringLengthCache.clear();
+        _transformCache.clear();
+        const buffer = BBC.allocUnsafe(this._type.checkGetSize(value, 'root'));
+        // _transformCache.clear();
 
         this._type.encode(new BufferPointer(buffer), value);
 
@@ -42,6 +47,9 @@ export class Encoder<S extends Schema/* , BBC extends typeof BinaryBuffer = type
 
         if (src instanceof BBC) {
             buffer = src;
+        } else
+        if (src?.buffer instanceof ArrayBuffer) {
+            buffer = BBC.from(src.buffer);
         } else {
             buffer = BBC.from(src, encoding);
         }

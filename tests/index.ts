@@ -40,6 +40,17 @@ const randEnum = () => [TypeEnum.a, TypeEnum.b, TypeEnum.c][Helpers.Random.uint(
 //     }))),
 // );
 
+new Encoder(Type.Struct({
+    array: Type.Array(Type.Struct({
+        id: Type.Int32(),
+        type: Type.Enum(TypeEnum),
+        count: Type.UInt32(),
+        enabled: Type.Nullable(Type.Bool()), // Type.Bool(), //
+    })),
+})).decode(Buffer.from('')).array[0].type
+
+type et = keyof typeof TypeEnum;
+
 Test.test(
     {
         label: 'Struct',

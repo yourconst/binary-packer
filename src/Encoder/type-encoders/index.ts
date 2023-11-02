@@ -14,6 +14,7 @@ import { _te_uvarint32 } from './uvarint32';
 import { _te_varint32 } from './varint32';
 import { _te_buffer } from './buffer';
 import { _te_one_of } from './one_of';
+import { _te_unullable } from './unullable';
 
 export { getArrayBuffer } from './buffer'
 
@@ -44,6 +45,7 @@ const typesMap = new Map<Types.SchemaSimple | Types.SchemaComplex['type'], TypeE
 
     ['aligned', (schema: Types.Aligned) => new _te_aligned(schema)],
     ['nullable', (schema: Types.Nullable) => new _te_nullable(schema)],
+    ['unullable', (schema: Types.UNullable) => new _te_unullable(schema)],
     ['transform', (schema: Types.Transform) => new _te_transform(schema)],
 ]);
 

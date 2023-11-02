@@ -9,7 +9,7 @@ export interface TypeEncoder<T = any> {
     readonly constValue?: T;
 
     getSize(value: T): number;
-    checkGetSize(value: T): number;
+    checkGetSize(value: T, path: string): number;
 
     encode(bp: BufferPointer, value: T): void;
     decode(bp: BufferPointer): T;

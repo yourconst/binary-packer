@@ -37,10 +37,16 @@ export const String = (
     lengthType,
 });
 
+/** Alias for `Str` type */
+export const Str = String;
+
 export const Buffer = (lengthType: Types._Length = 'uvarint32'): Types.Buffer => ({
     type: 'buffer',
     lengthType,
 });
+
+/** Alias for `Buffer` type */
+export const Buf = Buffer;
 
 export const Array = <S extends Types.Schema>(
     child: S,
@@ -51,11 +57,31 @@ export const Array = <S extends Types.Schema>(
     lengthType,
 });
 
-export const Struct = <F extends Types.Struct['fields']>(
+/** Alias for `Array` type */
+export const Vector = Array;
+
+type _Order = {
+    type: 'order';
+    index: number;
+    child: Types.Schema;
+};
+
+export const Order = <S extends Types.Schema>(index: number, child: S) => ({
+    type: <'order'> 'order',
+    index,
+    child,
+});
+
+export const Struct = <F extends Record<string, Types.Schema | _Order>>(
     fields: F,
 ) => ({
     type: <'struct'> 'struct',
-    fields,
+    fields: <{
+        [key in keyof F]: F[key] extends _Order ? F[key]['child'] : F[key];
+    }> <any> undefined,
+    orderedFields: Object.entries(fields)
+        .sort((a: [string, _Order], b: [string, _Order]) => (a[1].index ?? Infinity) - (b[1].index ?? Infinity))
+        .map(([name, type]: [string, _Order | Types.Schema]) => ({ name, type: type['type'] === 'order' ? type['child'] : type })),
 });
 
 export const OneOf = <F extends Types.OneOf['fields']>(
@@ -70,7 +96,20 @@ export const Enum = <T extends string | number>(
     bigIndexType: Types.UVarInt32 | Types.UInt16 = 'uvarint32',
 ) => ({
     type: <'enum'> 'enum',
-    values,
+    values: <(T/*  & number */)[]>(
+        globalThis.Array.isArray(values) ?
+            values :
+            Object.values(values)
+    ),
+    bigIndexType,
+});
+
+export const EnumInv = <T extends string>(
+    values: Record<T, string | number>,
+    bigIndexType: Types.UVarInt32 | Types.UInt16 = 'uvarint32',
+) => ({
+    type: <'enum'> 'enum',
+    values: <T[]> Object.keys(values),
     bigIndexType,
 });
 
@@ -78,6 +117,13 @@ export const Nullable = <S extends Types.Schema>(
     child: S,
 ) => ({
     type: <'nullable'> 'nullable',
+    child,
+});
+
+export const UNullable = <S extends Types.Schema>(
+    child: S,
+) => ({
+    type: <'unullable'> 'unullable',
     child,
 });
 

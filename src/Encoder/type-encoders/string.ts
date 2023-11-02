@@ -3,6 +3,7 @@ import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
 import { BinaryBuffer, StringEncoders } from '../BinaryBuffer';
+import { Cache } from './_Cache';
 
 // const stringBufferCache = new Map<string, BinaryBuffer>();
 
@@ -17,28 +18,7 @@ import { BinaryBuffer, StringEncoders } from '../BinaryBuffer';
 //     return _b;
 // };
 
-class StringLengthCache {
-    private _cache: number[] = [];
-    private _it = -1;
-    // private _it: Iterator<number>;
-
-    reset() {
-        this._cache.length = 0;
-        this._it = -1;
-        // this._it = this._cache.values();
-    }
-
-    add(length: number) {
-        this._cache.push(length);
-    }
-
-    get() {
-        return this._cache[++this._it];
-        // return this._it.next().value;
-    }
-}
-
-export const _stringLengthCache = new StringLengthCache();
+export const _stringLengthCache = new Cache<number>();
 
 export class _te_string implements TypeEncoder<string> {
     readonly isSizeFixed = false;
@@ -58,20 +38,20 @@ export class _te_string implements TypeEncoder<string> {
         
         this.getSize = <any> Function('byteLength, _stringLengthCache, lengthType', `
             return value => {
-                const _s = Buffer.byteLength(value, '${this._encoding}');
+                const _s = byteLength(value);
                 _stringLengthCache.add(_s);
                 return lengthType.getSize(_s) + _s;
             };
         `)(encoder.byteLength, _stringLengthCache, this._lengthType);
 
         this.checkGetSize = <any> Function('byteLength, _stringLengthCache, lengthType', `
-            return value => {
+            return (value, path) => {
                 if (typeof value !== 'string') {
-                    throw new Error();
+                    throw new Error(\`Is not string (\${path}, value: \${value}), { cause: value });
                 }
-                const _s = Buffer.byteLength(value, '${this._encoding}');
+                const _s = byteLength(value);
                 _stringLengthCache.add(_s);
-                return lengthType.getSize(_s) + _s;
+                return lengthType.getSize(_s, path + '.length') + _s;
             };
         `)(encoder.byteLength, _stringLengthCache, this._lengthType);
 
@@ -79,9 +59,9 @@ export class _te_string implements TypeEncoder<string> {
             return (bp, value) => {
                 const _s = _stringLengthCache.get();
                 lengthType.encode(bp, _s);
-                bp.buffer.write(value, bp.getAdd(_s), '${this._encoding}');
+                // bp.buffer.write(value, bp.getAdd(_s), '${this._encoding}');
                 // bp.buffer.${this._encoding}Write(value, bp.getAdd(_s));
-                // encodeInto(bp.buffer, value, bp.getAdd(_s));
+                encodeInto(bp.buffer, value, bp.getAdd(_s));
             };
         `)(encoder.encodeInto, _stringLengthCache, this._lengthType);
 

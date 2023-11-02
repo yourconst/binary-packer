@@ -67,14 +67,17 @@ export type OneOf = {
 
 export type Enum = {
     type: 'enum',
-    values: any[] | {
-        [key: string]: any;
-    };
+    values: any[];
     bigIndexType?: UVarInt32 | UInt16;
 };
 
 export type Nullable = {
     type: 'nullable';
+    child: Schema;
+};
+
+export type UNullable = {
+    type: 'unullable';
     child: Schema;
 };
 
@@ -104,7 +107,7 @@ export type SchemaVarInt = UVarInt32 | VarInt32;
 export type SchemaNumber = SchemaStandardNumber | SchemaVarInt;
 
 export type SchemaSimple = SchemaNumber | Bool;
-export type SchemaComplex = Const | Aligned | String | Buffer | Array | Struct | OneOf | Enum | Nullable | Transform;
+export type SchemaComplex = Const | Aligned | String | Buffer | Array | Struct | OneOf | Enum | Nullable | UNullable | Transform;
 
 export type Schema = SchemaSimple | SchemaComplex;
 
@@ -124,6 +127,7 @@ export type SchemaResultType<S extends Schema> =
     // S extends OneOf ? SchemaResultType<S['childs'][number]> :
     S extends Transform ? Parameters<S['encode']>[0] :
     S extends Nullable ? null | SchemaResultType<S['child']> :
+    S extends UNullable ? undefined | null | SchemaResultType<S['child']> :
     S extends Array ? SchemaResultType<S['child']>[] :
     S extends Struct ?
         S['orderedFields'] extends [] ? {

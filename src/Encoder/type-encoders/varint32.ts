@@ -2,21 +2,22 @@ import { TypeEncoder } from '../TypeEncoder.interface';
 import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 
-const maxUint31 = 2 ** 31 - 1;
-const checkRange = (value: number) => {
-    if (!isFinite(value) || Math.abs(value) > maxUint31 || Math.trunc(value) !== value) {
-        throw new Error(`Value doesn't satisfy constraint int32`, { cause: value });
+const maxInt32 = 2 ** 31 - 1;
+const minInt32 = -(2 ** 31);
+const getSize = (value: number) => {
+    if (value > 0) {
+        return value < 64 ? 1 :
+            value < 8192 ? 2 :
+            value < 1048576 ? 3 :
+            value < 134217728 ? 4 :
+            5;
+    } else {
+        return value >= -64 ? 1 :
+            value >= -8192 ? 2 :
+            value >= -1048576 ? 3 :
+            value >= -134217728 ? 4 :
+            5;
     }
-};
-const specificSizes = new Map([
-    [0, 1], [64, 2], [8192, 3], [1048576, 4], [134217728, 5],
-])
-const getSize = (value) => {
-    const ss = specificSizes.get(value);
-    if (ss) {
-        return ss;
-    }
-    return Math.ceil((Math.log2(Math.abs(value)) + 1) / 7);
 };
 
 export class _te_varint32 implements TypeEncoder<number> {
@@ -28,8 +29,10 @@ export class _te_varint32 implements TypeEncoder<number> {
         return getSize(value);
     }
 
-    checkGetSize(value: number) {
-        checkRange(value);
+    checkGetSize(value: number, path: string) {
+        if (!isFinite(value) || value < minInt32 || maxInt32 < value || Math.trunc(value) !== value) {
+            throw new Error(`Is not int32 (${path}, value: ${value})`, { cause: value });
+        }
         
         return getSize(value);
     }

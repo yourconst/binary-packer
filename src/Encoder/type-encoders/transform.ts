@@ -2,6 +2,9 @@ import { TypeEncoder } from '../TypeEncoder.interface';
 import * as Types from '../../types/types';
 import { BufferPointer } from '../BufferPointer';
 import { parseLengthSchema, parseSchema } from '.';
+import { Cache } from './_Cache';
+
+export const _transformCache = new Cache();
 
 export class _te_transform implements TypeEncoder {
     readonly isSizeFixed: boolean;
@@ -19,15 +22,19 @@ export class _te_transform implements TypeEncoder {
     }
 
     getSize(value: any) {
-        return this._child.getSize(this._encode(value));
+        const eValue = this._encode(value);
+        _transformCache.add(eValue);
+        return this._child.getSize(eValue);
     }
 
-    checkGetSize(value: any) {
-        return this._child.checkGetSize(this._encode(value));
+    checkGetSize(value: any, path: string) {
+        const eValue = this._encode(value);
+        _transformCache.add(eValue);
+        return this._child.checkGetSize(this._encode(eValue), path);
     }
 
     encode(bp: BufferPointer, value: any) {
-        this._child.encode(bp, this._encode(value));
+        this._child.encode(bp, _transformCache.get());
     }
 
     decode(bp: BufferPointer) {

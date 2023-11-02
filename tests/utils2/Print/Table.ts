@@ -2,6 +2,8 @@ import { Align, Color, OrderBy, Property, RecursiveRequired, applyAlign, applyCo
 
 export interface INumberOptions {
     decimals?: number;
+    multiplier?: number;
+    resolutions?: Record<string, number>;
 }
 
 export interface IHeaderOptions {
@@ -19,10 +21,21 @@ export interface IColumnOptions<P extends Property> {
     number?: INumberOptions;
 }
 export type TColumnOptions<P extends Property> = IColumnOptions<P> | P;
+
+const numberRegExp = /-{0,1}[0-9]+(\.([0-9])*)*/g;
+function getNumber(value: number | string) {
+    if (typeof value === 'number') {
+        return value.toString();
+    }
+
+    return <string> numberRegExp.exec(value)?.[0];
+}
 export class Column<O extends Record<string, any>, P extends keyof O = keyof O> {
     static parseNumberOptions(o?: INumberOptions, ref?: INumberOptions): RecursiveRequired<INumberOptions> {
         return {
-            decimals: <any> undefined,
+            decimals: <any> ref?.decimals ?? o?.decimals ?? 3,
+            multiplier: <any> ref?.multiplier ?? o?.multiplier ?? undefined,
+            resolutions: <any> ref?.resolutions ?? o?.resolutions ?? undefined,
             ...ref,
             ...o,
         };
@@ -36,6 +49,11 @@ export class Column<O extends Record<string, any>, P extends keyof O = keyof O> 
     _width = 0;
     _widthDecimals = 0;
 
+    readonly range = {
+        min: 0,
+        max: 0,
+    };
+
     readonly cells: string[] = [];
 
     constructor(readonly table: Table<O>, options: TColumnOptions<P>) {
@@ -47,9 +65,19 @@ export class Column<O extends Record<string, any>, P extends keyof O = keyof O> 
         
         this.align = o.align ?? (typeof this.table.rows[0][this.field] === 'number' ? 'number' : 'left');
         this.color = o.color ?? (this.isNumber ? 'yellow' : 'default');
-        this.number = Column.parseNumberOptions(o.number);
+        this.number = Column.parseNumberOptions(o.number, this.table.number);
 
         this._width = getConsoleWidth(this.header.name);
+
+        // if (this.isNumber) {
+        //     for (const row of this.table.rows) {
+        //         const num = +getNumber(row[this.field]);
+        //         if (this.range.max < num) this.range.max = num;
+        //         if (num < this.range.min) this.range.min = num;
+        //     }
+
+        //     this.number
+        // }
     }
 
     get isNumber() { return this.align === 'number'; }
@@ -60,11 +88,20 @@ export class Column<O extends Record<string, any>, P extends keyof O = keyof O> 
 
     update(o: O) {
         const v = o[this.field];
-        const s: string = (typeof v === 'number' && typeof this.number.decimals === 'number') ?
+        let s: string = (typeof v === 'number' && typeof this.number.decimals === 'number') ?
             (+v.toFixed(this.number.decimals)).toString() :
             v.toString();
 
         if (this.isNumber) {
+            if (typeof this.number.decimals === 'number' || typeof this.number.multiplier === 'number') {
+                const num = getNumber(s);
+
+                if (num) {
+                    const { decimals, multiplier = 1 } = this.number;
+                    s = s.replace(num, (+((+num) * multiplier).toFixed(decimals)).toString());
+                }
+            }
+
             const parts = s.split('.');
             if (typeof this.number.decimals === 'number') {
                 parts[1] = parts[1]?.slice(0, this.number.decimals);
@@ -178,6 +215,7 @@ export interface ITableOptions<P extends Property> {
     columns?: TColumnOptions<P>[];
     border?: IBorderOptions;
     order?: OrderBy<P>[];
+    number?: INumberOptions;
 }
 export type TTableOptions<P extends Property> = ITableOptions<P> | string;
 export class Table<O extends Record<string, any>, P extends keyof O = keyof O> {
@@ -188,6 +226,7 @@ export class Table<O extends Record<string, any>, P extends keyof O = keyof O> {
     readonly header: Header<O>;
     readonly columns: Column<O>[];
     readonly border: RecursiveRequired<IBorderOptions>;
+    readonly number: INumberOptions;
 
     constructor(readonly rows: O[], options: TTableOptions<P> = {}) {
         if (typeof options === 'string') {
@@ -205,6 +244,8 @@ export class Table<O extends Record<string, any>, P extends keyof O = keyof O> {
         }
 
         this.columns = options.columns.map(c => new Column(this, c));
+
+        this.number = Column.parseNumberOptions(options.number);
 
         this.border = {
             color: 'default',
