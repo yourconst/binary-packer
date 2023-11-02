@@ -57,8 +57,8 @@ Also it supports `ascii` string encoding (it's faster and smaller than `utf8`) a
 | `Const<T>` | 0 | `T` | Not encodes into buffer |
 | `Nullable<T>` | 1+... | `T\|null` | `undefined` encodes as `null` |
 | `Aligned<T,A>` | [0,7]+... | `T` | Add trailing empty bytes for desired bytes align (`A`) (eg. for `C` struct compatibility) |
-| `ULEB128` | [1, 5] | `number` | variable length unsigned int |
-| `LEB128` | [1, 5] | `number` | variable length signed int |
+| `UVarInt32` | [1, 5] | `number` | variable length unsigned int |
+| `VarInt32` | [1, 5] | `number` | variable length signed int |
 | `Bool` | 1 | `boolean` | - |
 | `Float64` | 8 | `number` | little / big endian |
 | `Float32` | 4 | `number` | little / big endian |
