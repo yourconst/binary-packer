@@ -30,7 +30,7 @@ export class _te_transform implements TypeEncoder {
     checkGetSize(value: any, path: string) {
         const eValue = this._encode(value);
         _transformCache.add(eValue);
-        return this._child.checkGetSize(this._encode(eValue), path);
+        return this._child.checkGetSize(eValue, path);
     }
 
     encode(bp: BufferPointer, value: any) {
