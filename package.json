@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "build-test": "tsc --project tsconfig.test.json",
-    "browserify-test": "browserify tests -p [ tsify ] > tests/bundle.js"
+    "browserify-test": "browserify tests -p [ tsify ] > tests/bundle.js",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
